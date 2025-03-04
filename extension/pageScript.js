@@ -556,6 +556,7 @@ function displayComparisonChart(
     const wrapper = document.createElement("div");
     wrapper.className = "poker-craft-rake-adjusted-wrapper";
     wrapper.dataset.timestamp = Date.now();
+    wrapper.dataset.parentComponentId = targetElement.id || "ev-graph-component";
 
     // Apply container styles
     const containerStyle = styles.ui.getContainerStyle();
@@ -681,21 +682,6 @@ function displayComparisonChart(
         {
           type: "line",
           axisYType: "secondary",
-          name: "Win/Loss (Rake-Adjusted)",
-          showInLegend: true,
-          color: styles.colors.positiveColor,
-          lineThickness: 2,
-          markerSize: 0,
-          dataPoints: rakeAdjustedData.map((point) => ({
-            x: point.x,
-            y: point.data.amount,
-            label: point.label,
-            toolTipContent: `Hand ${point.label}<br/>All-in EV: $${point.data.ev.toFixed(2)}<br/>Win/Loss: $${point.data.amount.toFixed(2)}`,
-          })),
-        },
-        {
-          type: "line",
-          axisYType: "secondary",
           name: "All-in EV (Rake-Adjusted)",
           showInLegend: true,
           color: "#FF9800", // Orange for EV
@@ -704,6 +690,21 @@ function displayComparisonChart(
           dataPoints: rakeAdjustedData.map((point) => ({
             x: point.x,
             y: point.data.ev,
+            label: point.label,
+            toolTipContent: `Hand ${point.label}<br/>All-in EV: $${point.data.ev.toFixed(2)}<br/>Win/Loss: $${point.data.amount.toFixed(2)}`,
+          })),
+        },
+        {
+          type: "line",
+          axisYType: "secondary",
+          name: "Win/Loss (Rake-Adjusted)",
+          showInLegend: true,
+          color: styles.colors.positiveColor,
+          lineThickness: 2,
+          markerSize: 0,
+          dataPoints: rakeAdjustedData.map((point) => ({
+            x: point.x,
+            y: point.data.amount,
             label: point.label,
             toolTipContent: `Hand ${point.label}<br/>All-in EV: $${point.data.ev.toFixed(2)}<br/>Win/Loss: $${point.data.amount.toFixed(2)}`,
           })),
@@ -1133,6 +1134,9 @@ function observeEvGraphButtonAndData() {
       return;
     }
 
+    // Clean up any existing charts before creating new ones
+    cleanupPreviousCharts();
+
     isProcessing = true;
     console.log("Polling for chart data readiness...");
 
@@ -1175,6 +1179,13 @@ function observeEvGraphButtonAndData() {
         }
       } else {
         console.log("EV graph component not found yet. Attempt " + attempts);
+        
+        // If the EV graph component doesn't exist, make sure we clean up any existing charts
+        cleanupPreviousCharts();
+        
+        clearInterval(pollInterval);
+        isProcessing = false;
+        return;
       }
       if (attempts >= maxAttempts) {
         console.error(
@@ -1247,6 +1258,18 @@ function observeEvGraphButtonAndData() {
         // Enhance the button with revamp.gg styling
         enhanceButton(evButton, "EV Graph");
       }
+      
+      // Check for other primary navigation buttons that should trigger cleanup
+      const otherButtons = document.querySelectorAll('button:not([kind="EvGraph"]).mat-button');
+      otherButtons.forEach(button => {
+        if (!button.hasAttribute("poker-craft-ext-cleanup")) {
+          button.setAttribute("poker-craft-ext-cleanup", "true");
+          button.addEventListener("click", () => {
+            console.log("Other navigation button clicked, cleaning up charts");
+            cleanupPreviousCharts();
+          });
+        }
+      });
 
       // Check for Next Hands button
       checkForNextHandsButton();
@@ -1276,16 +1299,20 @@ function observeEvGraphButtonAndData() {
     checkForNextHandsButton();
   }
 
-  // Watch for route changes in Angular application
+  // Watch for route changes and other UI changes in Angular application
   function watchForRouteChanges() {
     // We'll watch the URL for changes
     let lastUrl = location.href;
 
     // Create an observer to check when the URL changes
     new MutationObserver(() => {
+      // Check if URL changed
       if (location.href !== lastUrl) {
         lastUrl = location.href;
         console.log("URL changed to", lastUrl);
+
+        // Clean up our UI elements since we navigated away
+        cleanupPreviousCharts();
 
         // Reset and re-setup our observers
         if (buttonObserver) {
@@ -1296,6 +1323,13 @@ function observeEvGraphButtonAndData() {
         setTimeout(() => {
           setupButtonObserver();
         }, msBetweenAttempts);
+      }
+      
+      // Check if the original EV graph was removed (by other navigation)
+      const evGraphComponent = document.querySelector("app-game-session-detail-ev-graph");
+      if (!evGraphComponent) {
+        // If the original graph is gone, remove our UI too
+        cleanupPreviousCharts();
       }
     }).observe(document, { subtree: true, childList: true });
   }
