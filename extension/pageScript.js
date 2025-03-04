@@ -460,6 +460,7 @@ function calculateRakeAdjustedData(originalData, rakePercentage, rakeCap_BB) {
   let cumulativeAmount = 0;
   let cumulativeEv = 0;
   let totalRake = 0;
+  let totalRakeInBB = 0;
   let cumulativeBBResult = 0;
 
   for (let i = 0; i < adjustedData.length; i++) {
@@ -468,23 +469,25 @@ function calculateRakeAdjustedData(originalData, rakePercentage, rakeCap_BB) {
       cumulativeAmount = adjustedHandResults[i].amount;
       cumulativeEv = adjustedHandResults[i].ev;
       totalRake = adjustedHandResults[i].appliedRake || 0;
+      totalRakeInBB = (adjustedHandResults[i].appliedRake || 0) / bigBlindSize;
       cumulativeBBResult = cumulativeAmount / bigBlindSize;
     } else {
       cumulativeAmount += adjustedHandResults[i].amount;
       cumulativeEv += adjustedHandResults[i].ev;
       totalRake += adjustedHandResults[i].appliedRake || 0;
+      totalRakeInBB += (adjustedHandResults[i].appliedRake || 0) / bigBlindSize;
       cumulativeBBResult += adjustedHandResults[i].amount / bigBlindSize;
     }
 
     adjustedData[i].data.amount = cumulativeAmount;
     adjustedData[i].data.ev = cumulativeEv;
     adjustedData[i].data.totalRake = totalRake;
+    adjustedData[i].data.totalRakeInBB = totalRakeInBB;
     adjustedData[i].data.bbResult = cumulativeBBResult;
-    adjustedData[i].y = cumulativeAmount; // For backwards compatibility
+    adjustedData[i].y = cumulativeAmount;
     adjustedData[i].sessionData = adjustedHandResults[i].sessionData;
     adjustedData[i].bigBlindSize = adjustedHandResults[i].bigBlindSize;
   }
-
   return adjustedData;
 }
 
@@ -556,7 +559,8 @@ function displayComparisonChart(
     const wrapper = document.createElement("div");
     wrapper.className = "poker-craft-rake-adjusted-wrapper";
     wrapper.dataset.timestamp = Date.now();
-    wrapper.dataset.parentComponentId = targetElement.id || "ev-graph-component";
+    wrapper.dataset.parentComponentId =
+      targetElement.id || "ev-graph-component";
 
     // Apply container styles
     const containerStyle = styles.ui.getContainerStyle();
@@ -591,7 +595,7 @@ function displayComparisonChart(
     brandText.classList.add("revamp-brand-text");
 
     const title = document.createElement("h3");
-    title.textContent = "Rake-Adjusted Results";
+    title.textContent = "Rake-Adjusted Graph";
     title.style.textAlign = "center";
     title.style.margin = "0";
     title.style.padding = "8px 0";
@@ -650,6 +654,27 @@ function displayComparisonChart(
         backgroundColor: styles.colors.mediumBg,
         fontColor: styles.colors.textColor,
         cornerRadius: styles.borders.radius,
+        contentFormatter: function (e) {
+          // Check if we have any entries
+          if (e.entries && e.entries.length > 0) {
+            // Get hand number from first entry
+            const handLabel = e.entries[0].dataPoint.label;
+            let content = `Hand: ${handLabel}<br/>`;
+
+            // Add each entry with its colored value
+            for (let i = 0; i < e.entries.length; i++) {
+              const entry = e.entries[i];
+              const color = entry.dataSeries.color;
+              const name = entry.dataSeries.name;
+              const value = entry.dataPoint.y.toFixed(2);
+
+              content += `<span style="color: ${color};">${name}: $${value}</span><br/>`;
+            }
+
+            return content;
+          }
+          return "";
+        },
       },
       legend: {
         cursor: "pointer",
@@ -691,7 +716,6 @@ function displayComparisonChart(
             x: point.x,
             y: point.data.ev,
             label: point.label,
-            toolTipContent: `Hand ${point.label}<br/>All-in EV: $${point.data.ev.toFixed(2)}<br/>Win/Loss: $${point.data.amount.toFixed(2)}`,
           })),
         },
         {
@@ -706,7 +730,6 @@ function displayComparisonChart(
             x: point.x,
             y: point.data.amount,
             label: point.label,
-            toolTipContent: `Hand ${point.label}<br/>All-in EV: $${point.data.ev.toFixed(2)}<br/>Win/Loss: $${point.data.amount.toFixed(2)}`,
           })),
         },
       ],
@@ -824,12 +847,9 @@ function displayComparisonChart(
     const rakeImpact = {
       amount: difference,
       bbAmount:
-        difference /
-        (adjustedStakeData[Object.keys(adjustedStakeData)[0]]?.bigBlind || 0.1),
+        rakeAdjustedData[rakeAdjustedData.length - 1].data.totalRakeInBB,
       bbPer100:
-        (difference /
-          (adjustedStakeData[Object.keys(adjustedStakeData)[0]]?.bigBlind ||
-            0.1) /
+        (rakeAdjustedData[rakeAdjustedData.length - 1].data.totalRakeInBB /
           totalHands) *
         100,
     };
@@ -1134,9 +1154,6 @@ function observeEvGraphButtonAndData() {
       return;
     }
 
-    // Clean up any existing charts before creating new ones
-    cleanupPreviousCharts();
-
     isProcessing = true;
     console.log("Polling for chart data readiness...");
 
@@ -1179,10 +1196,10 @@ function observeEvGraphButtonAndData() {
         }
       } else {
         console.log("EV graph component not found yet. Attempt " + attempts);
-        
+
         // If the EV graph component doesn't exist, make sure we clean up any existing charts
         cleanupPreviousCharts();
-        
+
         clearInterval(pollInterval);
         isProcessing = false;
         return;
@@ -1258,10 +1275,12 @@ function observeEvGraphButtonAndData() {
         // Enhance the button with revamp.gg styling
         enhanceButton(evButton, "EV Graph");
       }
-      
+
       // Check for other primary navigation buttons that should trigger cleanup
-      const otherButtons = document.querySelectorAll('button:not([kind="EvGraph"]).mat-button');
-      otherButtons.forEach(button => {
+      const otherButtons = document.querySelectorAll(
+        'button:not([kind="EvGraph"]).mat-button'
+      );
+      otherButtons.forEach((button) => {
         if (!button.hasAttribute("poker-craft-ext-cleanup")) {
           button.setAttribute("poker-craft-ext-cleanup", "true");
           button.addEventListener("click", () => {
@@ -1324,9 +1343,11 @@ function observeEvGraphButtonAndData() {
           setupButtonObserver();
         }, msBetweenAttempts);
       }
-      
+
       // Check if the original EV graph was removed (by other navigation)
-      const evGraphComponent = document.querySelector("app-game-session-detail-ev-graph");
+      const evGraphComponent = document.querySelector(
+        "app-game-session-detail-ev-graph"
+      );
       if (!evGraphComponent) {
         // If the original graph is gone, remove our UI too
         cleanupPreviousCharts();
