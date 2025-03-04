@@ -519,14 +519,6 @@ function displayComparisonChart(
     container.style.marginTop = "20px";
     container.style.position = "relative";
 
-    const title = document.createElement("h3");
-    title.textContent = "Rake-Adjusted vs. Original Results";
-    title.style.textAlign = "center";
-    title.style.marginBottom = "10px";
-    title.style.color = "#fefefe";
-
-    const legend = document.createElement("div");
-
     const targetElement = document.querySelector(
       "app-game-session-detail-ev-graph"
     );
@@ -535,17 +527,85 @@ function displayComparisonChart(
       return;
     }
 
+    // Theme colors - using darker shades
+    const themeColor = "#9d4edd";
+    const themeColorLight = "#b066e6";
+    const darkBg = "#1a1a1a"; // Darker main background
+    const mediumBg = "#222222"; // Darker medium background
+    const lightBg = "#2a2a2a"; // Darker light background
+    const borderColor = "#333333"; // Darker border
+    const textColor = "#f0f0f0";
+    const positiveColor = "#81C784";
+    const negativeColor = "#E57373";
+    const originalLineColor = "#64B5F6";
+    const adjustedLineColor = "#81C784";
+
+    // Create wrapper with border matching enhanced button
     const wrapper = document.createElement("div");
     wrapper.className = "poker-craft-rake-adjusted-wrapper";
-    wrapper.dataset.timestamp = Date.now(); // Add a timestamp to identify this as the newest chart
-    wrapper.style.backgroundColor = "#212121";
+    wrapper.dataset.timestamp = Date.now();
+    wrapper.style.backgroundColor = darkBg;
     wrapper.style.padding = "20px";
-    wrapper.style.borderRadius = "5px";
+    // wrapper.style.borderRadius = "5px";
     wrapper.style.marginTop = "20px";
+    wrapper.style.marginBottom = "20px";
     wrapper.style.boxShadow = "0 2px 4px rgba(0,0,0,0.2)";
+    wrapper.style.border = `2px solid ${themeColor}`;
+    wrapper.style.position = "relative";
+    wrapper.style.overflow = "visible";
 
-    wrapper.appendChild(title);
-    wrapper.appendChild(legend);
+    // Add header
+    const header = document.createElement("div");
+    header.style.display = "flex";
+    header.style.justifyContent = "center";
+    header.style.marginBottom = "15px";
+    header.style.position = "relative";
+
+    // Create REVAMP.GG text styled like the enhanced button text
+    const brandText = document.createElement("div");
+    brandText.style.position = "absolute";
+    brandText.style.top = "0";
+    brandText.style.right = "0";
+    brandText.style.padding = "4px 8px";
+    brandText.style.color = themeColor;
+    brandText.style.fontFamily = "'Arial', sans-serif";
+    brandText.style.fontWeight = "bold";
+    brandText.style.fontSize = "11px";
+    brandText.style.letterSpacing = "0.5px";
+    brandText.style.textShadow = "0 0 5px rgba(157, 78, 221, 0.7)";
+    brandText.style.textTransform = "uppercase";
+    brandText.textContent = "REVAMP.GG";
+    brandText.style.backgroundColor = "transparent"; // No background
+
+    // Add the subtle pulse animation
+    const styleEl = document.createElement("style");
+    styleEl.textContent = `
+      @keyframes textPulse {
+        0% { color: rgba(157, 78, 221, 0.8); text-shadow: 0 0 5px rgba(157, 78, 221, 0.7); }
+        50% { color: rgba(186, 85, 211, 1); text-shadow: 0 0 8px rgba(186, 85, 211, 0.9); }
+        100% { color: rgba(157, 78, 221, 0.8); text-shadow: 0 0 5px rgba(157, 78, 221, 0.7); }
+      }
+      
+      .revamp-brand-text {
+        animation: textPulse 3s infinite ease-in-out;
+      }
+    `;
+    document.head.appendChild(styleEl);
+    brandText.classList.add("revamp-brand-text");
+
+    const title = document.createElement("h3");
+    title.textContent = "Rake-Adjusted vs. Original Results";
+    title.style.textAlign = "center";
+    title.style.margin = "0";
+    title.style.padding = "8px 0";
+    title.style.color = textColor;
+    title.style.fontFamily = "'Arial', sans-serif";
+    title.style.fontWeight = "600";
+    title.style.fontSize = "16px";
+
+    header.appendChild(title);
+    header.appendChild(brandText);
+    wrapper.appendChild(header);
     wrapper.appendChild(container);
 
     // First, add the new chart to the page
@@ -562,7 +622,7 @@ function displayComparisonChart(
         type: "line",
         name: "Original",
         showInLegend: true,
-        color: "#64B5F6",
+        color: originalLineColor,
         lineThickness: 2,
         markerSize: 0,
         dataPoints: originalData.map((point, i) => ({
@@ -580,7 +640,7 @@ function displayComparisonChart(
         type: "line",
         name: "Rake-Adjusted",
         showInLegend: true,
-        color: "#81C784",
+        color: adjustedLineColor,
         lineThickness: 2,
         markerSize: 0,
         dataPoints: rakeAdjustedData.map((point) => ({
@@ -596,42 +656,108 @@ function displayComparisonChart(
       },
     ];
 
+    // Create the chart with axisY2 on the right-hand side.
     const chart = new CanvasJS.Chart(container.id, {
-      backgroundColor: "#212121",
+      backgroundColor: darkBg,
       zoomEnabled: true,
       animationEnabled: true,
       theme: "dark2",
       axisX: {
         title: "Hand Number",
-        titleFontColor: "#fefefe",
-        labelFontColor: "#fefefe",
-        lineColor: "#444",
-        gridColor: "#333",
+        titleFontColor: textColor,
+        titleFontSize: 14,
+        labelFontColor: textColor,
+        lineColor: borderColor,
+        gridColor: "#242424",
+        tickLength: 0,
       },
-      axisY: {
-        title: "Amount ($)",
-        titleFontColor: "#fefefe",
-        labelFontColor: "#fefefe",
-        lineColor: "#444",
-        gridColor: "#333",
+      // Define the secondary Y axis which renders on the right.
+      axisY2: {
+        title: "Amount",
+        labelFontColor: textColor,
+        lineColor: borderColor,
+        gridColor: "#242424",
+        valueFormatString: "$#,##0",
+        tickLength: 0,
+        // Add any other axisY options as needed.
       },
       toolTip: {
         shared: true,
-        borderColor: "#444",
-        backgroundColor: "#212121",
-        fontColor: "#fff",
+        borderColor: borderColor,
+        backgroundColor: mediumBg,
+        fontColor: textColor,
+        cornerRadius: 4,
       },
       legend: {
-        fontColor: "#fefefe",
+        cursor: "pointer",
+        fontColor: textColor,
+        fontSize: 14,
+        verticalAlign: "bottom",
+        horizontalAlign: "center",
+        itemclick: function (e) {
+          if (
+            typeof e.dataSeries.visible === "undefined" ||
+            e.dataSeries.visible
+          ) {
+            e.dataSeries.visible = false;
+          } else {
+            e.dataSeries.visible = true;
+          }
+          chart.render();
+        },
       },
       title: {
         text: `Total Rake Impact: $${difference.toFixed(
           2
         )} (${percentDifference.toFixed(1)}%)`,
-        fontColor: "#fefefe",
+        fontColor: textColor,
         fontSize: 16,
+        fontWeight: "normal",
+        fontFamily: "'Arial', sans-serif",
+        padding: 10,
       },
-      data: chartData,
+      data: [
+        {
+          type: "line",
+          // Use the secondary axis for this series
+          axisYType: "secondary",
+          name: "Original",
+          showInLegend: true,
+          color: originalLineColor,
+          lineThickness: 2,
+          markerSize: 0,
+          dataPoints: originalData.map((point, i) => ({
+            x: point.x,
+            y: point.y,
+            label: point.label,
+            toolTipContent: `Hand ${point.label}<br/>Amount: $${point.y.toFixed(
+              2
+            )}<br/>Big Blind: $${(
+              rakeAdjustedData[i].bigBlindSize || 0.1
+            ).toFixed(2)}`,
+          })),
+        },
+        {
+          type: "line",
+          // Also use the secondary axis for the rake-adjusted series.
+          axisYType: "secondary",
+          name: "Rake-Adjusted",
+          showInLegend: true,
+          color: adjustedLineColor,
+          lineThickness: 2,
+          markerSize: 0,
+          dataPoints: rakeAdjustedData.map((point) => ({
+            x: point.x,
+            y: point.data.amount,
+            label: point.label,
+            toolTipContent: `Hand ${
+              point.label
+            }<br/>Rake-Adjusted: $${point.data.amount.toFixed(
+              2
+            )}<br/>Big Blind: $${point.bigBlindSize.toFixed(2)}`,
+          })),
+        },
+      ],
     });
 
     chart.render();
@@ -743,66 +869,137 @@ function displayComparisonChart(
       bbPer100: originalTotal.bbPer100 - adjustedTotal.bbPer100,
     };
 
+    // Create summary section with enhanced styling
     const resultsContainer = document.createElement("div");
     resultsContainer.style.marginTop = "20px";
 
+    // Create rake impact summary cards styled like the image
     const rakeImpactSummary = document.createElement("div");
-    rakeImpactSummary.style.padding = "10px";
-    rakeImpactSummary.style.marginBottom = "15px";
-    rakeImpactSummary.style.backgroundColor = "#333";
-    rakeImpactSummary.style.borderRadius = "5px";
+    rakeImpactSummary.style.padding = "15px";
+    rakeImpactSummary.style.marginBottom = "20px";
+    rakeImpactSummary.style.backgroundColor = mediumBg;
+    // rakeImpactSummary.style.borderRadius = "5px";
     rakeImpactSummary.style.textAlign = "center";
-    rakeImpactSummary.innerHTML = `
-            <h4 style="margin: 0 0 10px 0; color: #f8f8f8;">Rake Impact Summary</h4>
-            <div style="display: flex; justify-content: space-around; flex-wrap: wrap;">
-              <div style="padding: 5px 10px;">
-                <strong>Total Rake:</strong> $${rakeImpact.amount.toFixed(2)}
-              </div>
-              <div style="padding: 5px 10px;">
-                <strong>Total Rake in BB:</strong> ${rakeImpact.bbAmount.toFixed(
-                  2
-                )} BB
-              </div>
-              <div style="padding: 5px 10px;">
-                <strong>Rake in BB/100:</strong> ${rakeImpact.bbPer100.toFixed(
-                  2
-                )}
-              </div>
-            </div>
-          `;
+    rakeImpactSummary.style.border = `1px solid ${borderColor}`;
 
+    const summaryTitle = document.createElement("div");
+    summaryTitle.textContent = "Rake Impact Summary";
+    summaryTitle.style.marginBottom = "15px";
+    summaryTitle.style.fontSize = "16px";
+    summaryTitle.style.fontWeight = "bold";
+    summaryTitle.style.color = textColor;
+
+    const summaryCards = document.createElement("div");
+    summaryCards.style.display = "flex";
+    summaryCards.style.justifyContent = "space-around";
+    summaryCards.style.flexWrap = "wrap";
+    summaryCards.style.gap = "10px";
+
+    // Create impact summary cards
+    const createSummaryCard = (title, value) => {
+      const card = document.createElement("div");
+      card.style.flex = "1";
+      card.style.minWidth = "150px";
+      card.style.padding = "15px";
+      card.style.backgroundColor = lightBg;
+      //   card.style.borderRadius = "5px";
+      card.style.border = `1px solid ${borderColor}`;
+      card.style.borderLeft = `3px solid ${themeColor}`;
+
+      const cardTitle = document.createElement("div");
+      cardTitle.textContent = title;
+      cardTitle.style.fontSize = "13px";
+      cardTitle.style.color = "#aaa";
+      cardTitle.style.marginBottom = "8px";
+
+      const cardValue = document.createElement("div");
+      cardValue.innerHTML = value;
+      cardValue.style.fontSize = "18px";
+      cardValue.style.fontWeight = "bold";
+      cardValue.style.color = textColor;
+
+      card.appendChild(cardTitle);
+      card.appendChild(cardValue);
+
+      return card;
+    };
+
+    const totalRakeCard = createSummaryCard(
+      "Total Rake",
+      `$${rakeImpact.amount.toFixed(2)}`
+    );
+    const bbRakeCard = createSummaryCard(
+      "Total Rake in BB",
+      `${rakeImpact.bbAmount.toFixed(2)} BB`
+    );
+    const bbPerHundredCard = createSummaryCard(
+      "Rake in BB/100",
+      `${rakeImpact.bbPer100.toFixed(2)}`
+    );
+
+    summaryCards.appendChild(totalRakeCard);
+    summaryCards.appendChild(bbRakeCard);
+    summaryCards.appendChild(bbPerHundredCard);
+
+    rakeImpactSummary.appendChild(summaryTitle);
+    rakeImpactSummary.appendChild(summaryCards);
     resultsContainer.appendChild(rakeImpactSummary);
 
     function createResultsTable(title, stakesData, totals, isOriginal) {
       const tableContainer = document.createElement("div");
       tableContainer.style.marginBottom = "20px";
+      tableContainer.style.backgroundColor = mediumBg;
+      tableContainer.style.borderRadius = "5px";
+      tableContainer.style.padding = "15px";
+      tableContainer.style.border = `1px solid ${borderColor}`;
 
-      const tableTitle = document.createElement("h4");
+      // Create table header
+      const tableTitle = document.createElement("div");
       tableTitle.textContent = title;
-      tableTitle.style.margin = "0 0 10px 0";
       tableTitle.style.textAlign = "center";
-      tableTitle.style.color = isOriginal ? "#64B5F6" : "#81C784";
+      tableTitle.style.marginBottom = "15px";
+      tableTitle.style.color = isOriginal
+        ? originalLineColor
+        : adjustedLineColor;
+      tableTitle.style.fontSize = "16px";
+      tableTitle.style.fontWeight = "bold";
+
+      // Add a colored accent bar under the title
+      const accentBar = document.createElement("div");
+      accentBar.style.height = "3px";
+      accentBar.style.width = "60px";
+      accentBar.style.backgroundColor = isOriginal
+        ? originalLineColor
+        : adjustedLineColor;
+      accentBar.style.margin = "0 auto 15px auto";
+      accentBar.style.borderRadius = "2px";
 
       tableContainer.appendChild(tableTitle);
+      tableContainer.appendChild(accentBar);
 
       const table = document.createElement("table");
       table.style.width = "100%";
       table.style.borderCollapse = "collapse";
-      table.style.color = "#f8f8f8";
+      table.style.color = textColor;
+      table.style.fontSize = "14px";
+
+      // Table header styling
+      const headerBg = lightBg;
+      const cellPadding = "10px";
 
       let tableHTML = `
-              <thead>
-                <tr>
-                  <th style="padding: 8px; text-align: left; border-bottom: 1px solid #444;">Stakes</th>
-                  <th style="padding: 8px; text-align: right; border-bottom: 1px solid #444;">Hands</th>
-                  <th style="padding: 8px; text-align: right; border-bottom: 1px solid #444;">Win/Loss</th>
-                  <th style="padding: 8px; text-align: right; border-bottom: 1px solid #444;">BB Win/Loss</th>
-                  <th style="padding: 8px; text-align: right; border-bottom: 1px solid #444;">BB/100</th>
-                  <th style="padding: 8px; text-align: right; border-bottom: 1px solid #444;">Percentage</th>
-                </tr>
-              </thead>
-              <tbody>
-            `;
+        <thead>
+          <tr style="background-color: ${headerBg};">
+            <th style="padding: ${cellPadding}; text-align: left; border-bottom: 1px solid ${borderColor};">Stakes</th>
+            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${borderColor};">Hands</th>
+            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${borderColor};">Win/Loss</th>
+            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${borderColor};">BB Win/Loss</th>
+            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${borderColor};">BB/100</th>
+            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${borderColor};">Percentage</th>
+          </tr>
+        </thead>
+        <tbody>
+      `;
 
       const sortedStakes = Object.values(stakesData).sort(
         (a, b) => b.bigBlind - a.bigBlind
@@ -811,54 +1008,60 @@ function displayComparisonChart(
       sortedStakes.forEach((stake) => {
         if (stake.hands === 0) return;
 
-        const winLossColor = stake.winloss >= 0 ? "#81C784" : "#E57373";
-        const bbPerColor = stake.bbPer100 >= 0 ? "#81C784" : "#E57373";
+        const winLossColor = stake.winloss >= 0 ? positiveColor : negativeColor;
+        const bbPerColor = stake.bbPer100 >= 0 ? positiveColor : negativeColor;
 
         tableHTML += `
-                <tr>
-                  <td style="padding: 8px; text-align: left; border-bottom: 1px solid #333;">${
-                    stake.stakes
-                  }</td>
-                  <td style="padding: 8px; text-align: right; border-bottom: 1px solid #333;">${
-                    stake.hands
-                  }</td>
-                  <td style="padding: 8px; text-align: right; border-bottom: 1px solid #333; color: ${winLossColor};">$${stake.winloss.toFixed(
+          <tr>
+            <td style="padding: ${cellPadding}; text-align: left; border-bottom: 1px solid ${borderColor};">${
+          stake.stakes
+        }</td>
+            <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${borderColor};">${
+          stake.hands
+        }</td>
+            <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${borderColor}; color: ${winLossColor};">$${stake.winloss.toFixed(
           2
         )}</td>
-                  <td style="padding: 8px; text-align: right; border-bottom: 1px solid #333; color: ${winLossColor};">${stake.bbResult.toFixed(
+            <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${borderColor}; color: ${winLossColor};">${stake.bbResult.toFixed(
           2
         )}</td>
-                  <td style="padding: 8px; text-align: right; border-bottom: 1px solid #333; color: ${bbPerColor};">${stake.bbPer100.toFixed(
+            <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${borderColor}; color: ${bbPerColor};">${stake.bbPer100.toFixed(
           2
         )}</td>
-                  <td style="padding: 8px; text-align: right; border-bottom: 1px solid #333;">${
-                    stake.percentage
-                  }</td>
-                </tr>
-              `;
+            <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${borderColor};">${
+          stake.percentage
+        }</td>
+          </tr>
+        `;
       });
 
+      // Total row
+      const totalWinLossColor =
+        totals.winloss >= 0 ? positiveColor : negativeColor;
+      const totalBbPerColor =
+        totals.bbPer100 >= 0 ? positiveColor : negativeColor;
+
       tableHTML += `
-              <tr style="font-weight: bold; background-color: #333;">
-                <td style="padding: 8px; text-align: left;">TOTAL</td>
-                <td style="padding: 8px; text-align: right;">${
-                  totals.hands
-                }</td>
-                <td style="padding: 8px; text-align: right; color: ${
-                  totals.winloss >= 0 ? "#81C784" : "#E57373"
-                };">$${totals.winloss.toFixed(2)}</td>
-                <td style="padding: 8px; text-align: right; color: ${
-                  totals.winloss >= 0 ? "#81C784" : "#E57373"
-                };">${totals.bbResult.toFixed(2)}</td>
-                <td style="padding: 8px; text-align: right; color: ${
-                  totals.bbPer100 >= 0 ? "#81C784" : "#E57373"
-                };">${totals.bbPer100.toFixed(2)}</td>
-                <td style="padding: 8px; text-align: right;">${
-                  totals.percentage
-                }</td>
-              </tr>
-              </tbody>
-            `;
+        <tr style="font-weight: bold; background-color: ${headerBg};">
+          <td style="padding: ${cellPadding}; text-align: left; border-top: 1px solid ${borderColor};">TOTAL</td>
+          <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${borderColor};">${
+        totals.hands
+      }</td>
+          <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${borderColor}; color: ${totalWinLossColor};">$${totals.winloss.toFixed(
+        2
+      )}</td>
+          <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${borderColor}; color: ${totalWinLossColor};">${totals.bbResult.toFixed(
+        2
+      )}</td>
+          <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${borderColor}; color: ${totalBbPerColor};">${totals.bbPer100.toFixed(
+        2
+      )}</td>
+          <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${borderColor};">${
+        totals.percentage
+      }</td>
+        </tr>
+        </tbody>
+      `;
 
       table.innerHTML = tableHTML;
       tableContainer.appendChild(table);
@@ -887,6 +1090,8 @@ function displayComparisonChart(
 
     originalTable.style.flex = "1 1 48%";
     adjustedTable.style.flex = "1 1 48%";
+    originalTable.style.minWidth = "320px";
+    adjustedTable.style.minWidth = "320px";
 
     tablesContainer.appendChild(originalTable);
     tablesContainer.appendChild(adjustedTable);
@@ -894,16 +1099,22 @@ function displayComparisonChart(
     resultsContainer.appendChild(tablesContainer);
     wrapper.appendChild(resultsContainer);
 
+    // Create footer note
     const notesContainer = document.createElement("div");
     notesContainer.style.marginTop = "15px";
-    notesContainer.style.padding = "10px";
+    notesContainer.style.padding = "12px";
     notesContainer.style.fontSize = "12px";
     notesContainer.style.color = "#aaa";
     notesContainer.style.textAlign = "center";
+    notesContainer.style.backgroundColor = mediumBg;
+    // notesContainer.style.borderRadius = "5px";
+    notesContainer.style.border = `1px solid ${borderColor}`;
+
     notesContainer.innerHTML = `
-            <p>Note: Rake calculation assumes 5% rake with a cap of 3 big blinds per pot.</p>
-            <p>Each hand is matched to its session based on timestamp, using the correct big blind size for that session.</p>
-          `;
+      <div style="margin-bottom: 5px;">Note: Rake calculation assumes 5% rake with a cap of 3 big blinds per pot.</div>
+      <div>Each hand is matched to its session based on timestamp, using the correct big blind size for that session.</div>
+      <div style="margin-top: 10px; font-weight: bold; color: ${themeColor}; text-transform: uppercase; letter-spacing: 1px;" class="revamp-brand-text">Powered by REVAMP.GG</div>
+    `;
 
     wrapper.appendChild(notesContainer);
 
@@ -914,6 +1125,7 @@ function displayComparisonChart(
     console.log(`Rake impact in BB/100: ${rakeImpact.bbPer100.toFixed(2)}`);
   });
 }
+
 // Observe the EV Graph button and launch our code when ready
 function observeEvGraphButtonAndData() {
   const evButtonSelector = 'button[kind="EvGraph"]';
@@ -1041,7 +1253,7 @@ function observeEvGraphButtonAndData() {
         link.addEventListener("click", handleNextHandsButtonClick);
 
         // Enhance the button with revamp.gg styling
-        enhanceButton(link, "Next Hands");
+        // enhanceButton(link, "Next Hands");
       }
     }
   }
@@ -1153,6 +1365,7 @@ function enhanceButton(button, buttonType) {
   button.style.borderStyle = borderStyle;
   button.style.borderColor = borderColor;
   button.style.boxSizing = "border-box";
+  //   button.style.borderRadius = "5px";
 
   // Create the badge container
   const badgeContainer = document.createElement("div");
@@ -1161,14 +1374,6 @@ function enhanceButton(button, buttonType) {
   badgeContainer.style.top = "0";
   badgeContainer.style.right = "0";
   badgeContainer.style.background = "transparent"; // Make background transparent
-
-  // No borders on the badge, as requested
-  // badgeContainer.style.borderBottomWidth = borderWidth;
-  // badgeContainer.style.borderBottomStyle = borderStyle;
-  // badgeContainer.style.borderBottomColor = borderColor;
-  // badgeContainer.style.borderLeftWidth = borderWidth;
-  // badgeContainer.style.borderLeftStyle = borderStyle;
-  // badgeContainer.style.borderLeftColor = borderColor;
 
   badgeContainer.style.zIndex = "5";
   badgeContainer.style.boxSizing = "border-box";
