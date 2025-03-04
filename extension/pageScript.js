@@ -631,7 +631,7 @@ function displayComparisonChart(
         titleFontSize: parseInt(styles.typography.subtitleSize),
         labelFontColor: styles.colors.textColor,
         lineColor: styles.colors.borderColor,
-        gridColor: "rgba(36, 36, 36, 1)",
+        gridColor: styles.colors.gridColor,
         tickLength: 0,
       },
       // Define the secondary Y axis which renders on the right.
@@ -639,7 +639,7 @@ function displayComparisonChart(
         // title: "Amount ($)",
         labelFontColor: styles.colors.textColor,
         lineColor: styles.colors.borderColor,
-        gridColor: "rgba(36, 36, 36, 1)",
+        gridColor: styles.colors.gridColor,
         valueFormatString: "$#,##0.##",
         tickLength: 0,
       },
@@ -653,7 +653,7 @@ function displayComparisonChart(
       legend: {
         cursor: "pointer",
         fontColor: styles.colors.textColor,
-        fontSize: parseInt(styles.typography.defaultSize),
+        fontSize: parseInt(styles.typography.smallSize), // Reduced font size
         verticalAlign: "bottom",
         horizontalAlign: "center",
         itemclick: function (e) {
@@ -669,33 +669,28 @@ function displayComparisonChart(
         },
       },
       title: {
-        text: `Total Rake Impact: $${difference.toFixed(
-          2
-        )} (${percentDifference.toFixed(1)}%)`,
+        text: "", // Remove the graph title
         fontColor: styles.colors.textColor,
         fontSize: parseInt(styles.typography.titleSize),
         fontWeight: "normal",
         fontFamily: styles.typography.fontFamily,
         padding: 10,
       },
+      creditText: "",
       data: [
         {
           type: "line",
           axisYType: "secondary",
           name: "Win/Loss (Rake-Adjusted)",
           showInLegend: true,
-          color: winlossColor,
+          color: styles.colors.positiveColor,
           lineThickness: 2,
           markerSize: 0,
           dataPoints: rakeAdjustedData.map((point) => ({
             x: point.x,
             y: point.data.amount,
             label: point.label,
-            toolTipContent: `Hand ${
-              point.label
-            }<br/>Win/Loss: $${point.data.amount.toFixed(
-              2
-            )}<br/>Big Blind: $${point.bigBlindSize.toFixed(2)}`,
+            toolTipContent: `Hand ${point.label}<br/>All-in EV: $${point.data.ev.toFixed(2)}<br/>Win/Loss: $${point.data.amount.toFixed(2)}`,
           })),
         },
         {
@@ -703,18 +698,14 @@ function displayComparisonChart(
           axisYType: "secondary",
           name: "All-in EV (Rake-Adjusted)",
           showInLegend: true,
-          color: evColor,
+          color: "#FF9800", // Orange for EV
           lineThickness: 2,
           markerSize: 0,
           dataPoints: rakeAdjustedData.map((point) => ({
             x: point.x,
             y: point.data.ev,
             label: point.label,
-            toolTipContent: `Hand ${
-              point.label
-            }<br/>All-in EV: $${point.data.ev.toFixed(
-              2
-            )}<br/>Big Blind: $${point.bigBlindSize.toFixed(2)}`,
+            toolTipContent: `Hand ${point.label}<br/>All-in EV: $${point.data.ev.toFixed(2)}<br/>Win/Loss: $${point.data.amount.toFixed(2)}`,
           })),
         },
       ],
@@ -857,7 +848,7 @@ function displayComparisonChart(
     rakeImpactSummary.style.textAlign = "center";
 
     const summaryTitle = document.createElement("div");
-    summaryTitle.textContent = "Rake Impact Summary";
+    summaryTitle.textContent = "Rake Summary";
     summaryTitle.style.marginBottom = styles.spacing.medium;
     summaryTitle.style.fontSize = styles.typography.titleSize;
     summaryTitle.style.fontWeight = "bold";
@@ -878,7 +869,6 @@ function displayComparisonChart(
       card.style.backgroundColor = styles.colors.lightBg;
       card.style.borderRadius = `${styles.borders.radius}px`;
       card.style.border = `1px solid ${styles.colors.borderColor}`;
-      card.style.borderLeft = `3px solid ${styles.colors.primary}`;
 
       const cardTitle = document.createElement("div");
       cardTitle.textContent = title;
@@ -968,7 +958,6 @@ function displayComparisonChart(
             <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${styles.colors.borderColor};">Win/Loss</th>
             <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${styles.colors.borderColor};">BB Win/Loss</th>
             <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${styles.colors.borderColor};">BB/100</th>
-            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${styles.colors.borderColor};">Percentage</th>
           </tr>
         </thead>
         <tbody>
@@ -1007,9 +996,6 @@ function displayComparisonChart(
             <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${
           styles.colors.borderColor
         }; color: ${bbPerColor};">${stake.bbPer100.toFixed(2)}</td>
-            <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${
-          styles.colors.borderColor
-        };">${stake.percentage}</td>
           </tr>
         `;
       });
@@ -1041,9 +1027,6 @@ function displayComparisonChart(
           <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${
         styles.colors.borderColor
       }; color: ${totalBbPerColor};">${totals.bbPer100.toFixed(2)}</td>
-          <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${
-        styles.colors.borderColor
-      };">${totals.percentage}</td>
         </tr>
         </tbody>
       `;
