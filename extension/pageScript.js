@@ -511,6 +511,7 @@ function displayComparisonChart(
   }
 
   ensureCanvasJS(function () {
+    // Create the new chart elements
     const container = document.createElement("div");
     container.id = "rake-adjusted-chart-container";
     container.style.width = "100%";
@@ -525,19 +526,6 @@ function displayComparisonChart(
     title.style.color = "#fefefe";
 
     const legend = document.createElement("div");
-    legend.style.padding = "5px";
-    legend.style.marginBottom = "10px";
-    legend.style.textAlign = "center";
-    legend.innerHTML = `
-            <span style="display: inline-block; margin-right: 15px;">
-              <span style="display: inline-block; width: 15px; height: 15px; background-color: #64B5F6; margin-right: 5px;"></span>
-              Original Results
-            </span>
-            <span style="display: inline-block;">
-              <span style="display: inline-block; width: 15px; height: 15px; background-color: #81C784; margin-right: 5px;"></span>
-              Rake-Adjusted Results
-            </span>
-          `;
 
     const targetElement = document.querySelector(
       "app-game-session-detail-ev-graph"
@@ -548,6 +536,8 @@ function displayComparisonChart(
     }
 
     const wrapper = document.createElement("div");
+    wrapper.className = "poker-craft-rake-adjusted-wrapper";
+    wrapper.dataset.timestamp = Date.now(); // Add a timestamp to identify this as the newest chart
     wrapper.style.backgroundColor = "#212121";
     wrapper.style.padding = "20px";
     wrapper.style.borderRadius = "5px";
@@ -558,6 +548,7 @@ function displayComparisonChart(
     wrapper.appendChild(legend);
     wrapper.appendChild(container);
 
+    // First, add the new chart to the page
     targetElement.parentNode.insertBefore(wrapper, targetElement.nextSibling);
 
     const originalFinal = originalData[originalData.length - 1].y;
@@ -644,6 +635,17 @@ function displayComparisonChart(
     });
 
     chart.render();
+
+    // Now that the new chart is in place, remove any old charts
+    const currentTimestamp = wrapper.dataset.timestamp;
+    const oldCharts = document.querySelectorAll(
+      ".poker-craft-rake-adjusted-wrapper"
+    );
+    oldCharts.forEach((chart) => {
+      if (chart.dataset.timestamp !== currentTimestamp) {
+        chart.remove();
+      }
+    });
 
     const totalHands = originalData.length;
     const originalStakeData = {};
@@ -912,38 +914,45 @@ function displayComparisonChart(
     console.log(`Rake impact in BB/100: ${rakeImpact.bbPer100.toFixed(2)}`);
   });
 }
-
 // Observe the EV Graph button and launch our code when ready
 function observeEvGraphButtonAndData() {
   const evButtonSelector = 'button[kind="EvGraph"]';
   let isProcessing = false; // Flag to prevent multiple simultaneous executions
   let buttonObserver = null;
 
+  // Increased timeouts and renamed for clarity
+  const maxAttempts = 180;
+  const msBetweenAttempts = 1000;
+
   // Function to remove any previously created charts
   function cleanupPreviousCharts() {
-    const existingChart = document.getElementById(
-      "rake-adjusted-chart-container"
+    console.log("Cleaning up previous charts");
+
+    // Find all elements with our custom class
+    const customElements = document.querySelectorAll(
+      ".poker-craft-rake-adjusted-wrapper"
     );
-    if (existingChart) {
-      const wrapper = existingChart.closest(
-        'div[style*="background-color: #212121"]'
+    if (customElements.length > 0) {
+      console.log(
+        `Found ${customElements.length} custom chart elements to remove`
       );
-      if (wrapper) {
-        wrapper.remove();
-      }
+      customElements.forEach((el) => el.remove());
+    } else {
+      console.log("No existing charts found to remove");
     }
   }
 
-  // Function to handle button clicks
-  function handleEvButtonClick() {
-    if (isProcessing) return;
-    isProcessing = true;
+  // Function to check for chart data and create graph
+  function pollForChartDataAndCreate() {
+    if (isProcessing) {
+      console.log("Already processing a chart request, ignoring");
+      return;
+    }
 
-    console.log("EV Graph button clicked. Polling for chart data readiness...");
-    cleanupPreviousCharts(); // Remove previous charts first
+    isProcessing = true;
+    console.log("Polling for chart data readiness...");
 
     let attempts = 0;
-    const maxAttempts = 20;
     const pollInterval = setInterval(() => {
       attempts++;
       const evGraphComponent = document.querySelector(
@@ -962,7 +971,13 @@ function observeEvGraphButtonAndData() {
                 ". Running extension code."
             );
             clearInterval(pollInterval);
+
+            // Create the new chart first (old charts still visible)
             createRakeAdjustedGraph();
+
+            // After creating the graph, look for the "Next X hands" button
+            setTimeout(checkForNextHandsButton, msBetweenAttempts);
+
             isProcessing = false;
             return;
           } else {
@@ -984,22 +999,73 @@ function observeEvGraphButtonAndData() {
         clearInterval(pollInterval);
         isProcessing = false;
       }
-    }, 500);
+    }, msBetweenAttempts);
   }
 
-  // Watch for EV Graph button using MutationObserver (more robust than polling)
+  // Function to handle EV button clicks
+  function handleEvButtonClick() {
+    console.log("EV Graph button clicked.");
+    pollForChartDataAndCreate();
+  }
+
+  // Function to handle Next Hands button clicks
+  function handleNextHandsButtonClick(e) {
+    console.log("Next hands button clicked.");
+    // Make extra sure we're not processing anything else
+    if (isProcessing) {
+      console.log("Already processing, aborting current process");
+      isProcessing = false;
+    }
+
+    // Wait for the original chart to update
+    setTimeout(() => {
+      pollForChartDataAndCreate();
+    }, msBetweenAttempts);
+  }
+
+  // Function to detect and add listener to the Next X hands button
+  function checkForNextHandsButton() {
+    // We need a special selector since the standard :contains selector isn't natively supported
+    // Find all <a> elements with spans containing "Next"
+    const allLinks = document.querySelectorAll("a");
+
+    for (const link of allLinks) {
+      const span = link.querySelector("span");
+      if (
+        span &&
+        span.textContent.includes("Next") &&
+        !span.hasAttribute("poker-craft-ext-initialized")
+      ) {
+        console.log("Next hands button found:", span.textContent);
+        span.setAttribute("poker-craft-ext-initialized", "true");
+        link.addEventListener("click", handleNextHandsButtonClick);
+
+        // Enhance the button with revamp.gg styling
+        enhanceButton(link, "Next Hands");
+      }
+    }
+  }
+
+  // Watch for EV Graph button and Next Hands button using MutationObserver
   function setupButtonObserver() {
     if (buttonObserver) {
       buttonObserver.disconnect();
     }
 
     buttonObserver = new MutationObserver((mutations) => {
+      // Check for EV Graph button
       const evButton = document.querySelector(evButtonSelector);
       if (evButton && !evButton.hasAttribute("poker-craft-ext-initialized")) {
         console.log("EV Graph button found. Attaching click listener.");
         evButton.setAttribute("poker-craft-ext-initialized", "true");
         evButton.addEventListener("click", handleEvButtonClick);
+
+        // Enhance the button with revamp.gg styling
+        enhanceButton(evButton, "EV Graph");
       }
+
+      // Check for Next Hands button
+      checkForNextHandsButton();
     });
 
     // Start observing the document with the configured parameters
@@ -1010,7 +1076,7 @@ function observeEvGraphButtonAndData() {
       characterData: false,
     });
 
-    // Also check immediately in case the button already exists
+    // Also check immediately in case the buttons already exist
     const evButton = document.querySelector(evButtonSelector);
     if (evButton && !evButton.hasAttribute("poker-craft-ext-initialized")) {
       console.log(
@@ -1018,7 +1084,12 @@ function observeEvGraphButtonAndData() {
       );
       evButton.setAttribute("poker-craft-ext-initialized", "true");
       evButton.addEventListener("click", handleEvButtonClick);
+
+      // Enhance the button with revamp.gg styling
+      enhanceButton(evButton, "EV Graph");
     }
+
+    checkForNextHandsButton();
   }
 
   // Watch for route changes in Angular application
@@ -1040,7 +1111,7 @@ function observeEvGraphButtonAndData() {
         // Wait a bit for the new page to load its components
         setTimeout(() => {
           setupButtonObserver();
-        }, 1000);
+        }, msBetweenAttempts);
       }
     }).observe(document, { subtree: true, childList: true });
   }
@@ -1048,6 +1119,153 @@ function observeEvGraphButtonAndData() {
   // Start the observers
   setupButtonObserver();
   watchForRouteChanges();
+}
+
+// ---
+// Enhance a button with revamp.gg styling
+// ---
+function enhanceButton(button, buttonType) {
+  if (button.hasAttribute("revamp-enhanced")) {
+    return; // Already enhanced
+  }
+
+  // Mark button as enhanced
+  button.setAttribute("revamp-enhanced", "true");
+
+  // Set position for absolute positioning if needed
+  const originalPosition = window.getComputedStyle(button).position;
+  if (originalPosition === "static") {
+    button.style.position = "relative";
+  }
+
+  // Define border properties with thicker borders
+  const borderWidth = "2px";
+  const borderColor = "#9d4edd";
+  const borderStyle = "solid";
+  const glowEffect = "0 0 10px rgba(157, 78, 221, 0.7)";
+  const hoverGlowEffect = "0 0 15px rgba(176, 102, 230, 0.9)";
+  const hoverBorderColor = "#b066e6";
+
+  // Apply border and glow to the button
+  button.style.overflow = "visible";
+  button.style.boxShadow = glowEffect;
+  button.style.borderWidth = borderWidth;
+  button.style.borderStyle = borderStyle;
+  button.style.borderColor = borderColor;
+  button.style.boxSizing = "border-box";
+
+  // Create the badge container
+  const badgeContainer = document.createElement("div");
+  badgeContainer.className = "revamp-badge";
+  badgeContainer.style.position = "absolute";
+  badgeContainer.style.top = "0";
+  badgeContainer.style.right = "0";
+  badgeContainer.style.background = "transparent"; // Make background transparent
+
+  // No borders on the badge, as requested
+  // badgeContainer.style.borderBottomWidth = borderWidth;
+  // badgeContainer.style.borderBottomStyle = borderStyle;
+  // badgeContainer.style.borderBottomColor = borderColor;
+  // badgeContainer.style.borderLeftWidth = borderWidth;
+  // badgeContainer.style.borderLeftStyle = borderStyle;
+  // badgeContainer.style.borderLeftColor = borderColor;
+
+  badgeContainer.style.zIndex = "5";
+  badgeContainer.style.boxSizing = "border-box";
+  badgeContainer.style.display = "flex";
+  badgeContainer.style.alignItems = "center";
+  badgeContainer.style.justifyContent = "center";
+  badgeContainer.style.pointerEvents = "none"; // Important: prevent separate hover on the badge
+
+  // Add the text
+  const revampText = document.createElement("span");
+  revampText.textContent = "REVAMP.GG";
+  revampText.style.display = "block";
+  revampText.style.color = borderColor;
+  revampText.style.fontFamily = "'Arial', sans-serif";
+  revampText.style.fontWeight = "bold";
+  revampText.style.letterSpacing = "0.5px";
+  revampText.style.textShadow = "0 0 5px rgba(157, 78, 221, 0.7)";
+  revampText.style.pointerEvents = "none";
+  revampText.style.lineHeight = "1";
+  revampText.style.textAlign = "center";
+
+  // Set appropriate font size and increased padding based on button type
+  if (buttonType === "EV Graph") {
+    revampText.style.fontSize = "11px";
+    badgeContainer.style.padding = "4px 8px 4px 8px";
+  } else {
+    revampText.style.fontSize = "8px";
+    badgeContainer.style.padding = "3px 6px 3px 6px";
+  }
+
+  // Add the subtle animations
+  if (!document.getElementById("revamp-glow-animations")) {
+    const styleEl = document.createElement("style");
+    styleEl.id = "revamp-glow-animations";
+    styleEl.textContent = `
+      @keyframes borderGlow {
+        0% { border-color: rgba(157, 78, 221, 0.7); }
+        25% { border-color: rgba(138, 43, 226, 0.9); }
+        50% { border-color: rgba(186, 85, 211, 0.8); }
+        75% { border-color: rgba(138, 43, 226, 0.9); }
+        100% { border-color: rgba(157, 78, 221, 0.7); }
+      }
+      
+      @keyframes textPulse {
+        0% { color: rgba(157, 78, 221, 0.8); text-shadow: 0 0 5px rgba(157, 78, 221, 0.7); }
+        50% { color: rgba(186, 85, 211, 1); text-shadow: 0 0 8px rgba(186, 85, 211, 0.9); }
+        100% { color: rgba(157, 78, 221, 0.8); text-shadow: 0 0 5px rgba(157, 78, 221, 0.7); }
+      }
+      
+      /* Apply animations to button and text */
+      button[revamp-enhanced="true"] {
+        animation: borderGlow 3s infinite ease-in-out;
+      }
+      
+      button[revamp-enhanced="true"] .revamp-badge span {
+        animation: textPulse 3s infinite ease-in-out;
+      }
+    `;
+    document.head.appendChild(styleEl);
+  }
+
+  // Enhanced hover effect - only on the button but affects text color
+  button.addEventListener("mouseover", function () {
+    // Apply hover effect to button
+    button.style.boxShadow = hoverGlowEffect;
+    button.style.borderColor = hoverBorderColor;
+
+    // Update text color
+    revampText.style.color = hoverBorderColor;
+    revampText.style.textShadow = "0 0 10px rgba(176, 102, 230, 0.9)";
+  });
+
+  button.addEventListener("mouseout", function () {
+    // Reset button to default
+    button.style.boxShadow = glowEffect;
+    button.style.borderColor = borderColor;
+
+    // Reset text color
+    revampText.style.color = borderColor;
+    revampText.style.textShadow = "0 0 5px rgba(157, 78, 221, 0.7)";
+
+    // Restart animations
+    button.style.animation = "none";
+    revampText.style.animation = "none";
+
+    setTimeout(() => {
+      // Restore animations
+      button.style.animation = "borderGlow 3s infinite ease-in-out";
+      revampText.style.animation = "textPulse 3s infinite ease-in-out";
+    }, 10);
+  });
+
+  // Assemble and append
+  badgeContainer.appendChild(revampText);
+  button.appendChild(badgeContainer);
+
+  console.log(`Enhanced ${buttonType} button with revamp.gg styling`);
 }
 
 // Start the observer for the EV graph button
