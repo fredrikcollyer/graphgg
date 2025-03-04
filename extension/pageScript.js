@@ -527,32 +527,19 @@ function displayComparisonChart(
       return;
     }
 
-    // Theme colors - using darker shades
-    const themeColor = "#9d4edd";
-    const themeColorLight = "#b066e6";
-    const darkBg = "#1a1a1a"; // Darker main background
-    const mediumBg = "#222222"; // Darker medium background
-    const lightBg = "#2a2a2a"; // Darker light background
-    const borderColor = "#333333"; // Darker border
-    const textColor = "#f0f0f0";
-    const positiveColor = "#81C784";
-    const negativeColor = "#E57373";
-    const originalLineColor = "#64B5F6";
-    const adjustedLineColor = "#81C784";
+    // Use shared style variables
+    const styles = window.RevampStyles;
 
     // Create wrapper with border matching enhanced button
     const wrapper = document.createElement("div");
     wrapper.className = "poker-craft-rake-adjusted-wrapper";
     wrapper.dataset.timestamp = Date.now();
-    wrapper.style.backgroundColor = darkBg;
-    wrapper.style.padding = "20px";
-    // wrapper.style.borderRadius = "5px";
-    wrapper.style.marginTop = "20px";
-    wrapper.style.marginBottom = "20px";
-    wrapper.style.boxShadow = "0 2px 4px rgba(0,0,0,0.2)";
-    wrapper.style.border = `2px solid ${themeColor}`;
-    wrapper.style.position = "relative";
-    wrapper.style.overflow = "visible";
+
+    // Apply container styles
+    const containerStyle = styles.ui.getContainerStyle();
+    Object.keys(containerStyle).forEach((key) => {
+      wrapper.style[key] = containerStyle[key];
+    });
 
     // Add header
     const header = document.createElement("div");
@@ -563,34 +550,21 @@ function displayComparisonChart(
 
     // Create REVAMP.GG text styled like the enhanced button text
     const brandText = document.createElement("div");
+
+    // Apply brand text styles
+    const brandTextStyle = styles.ui.getBrandTextStyle(false);
+    Object.keys(brandTextStyle).forEach((key) => {
+      brandText.style[key] = brandTextStyle[key];
+    });
+
+    // Additional positioning for this specific use case
     brandText.style.position = "absolute";
     brandText.style.top = "0";
     brandText.style.right = "0";
     brandText.style.padding = "4px 8px";
-    brandText.style.color = themeColor;
-    brandText.style.fontFamily = "'Arial', sans-serif";
-    brandText.style.fontWeight = "bold";
-    brandText.style.fontSize = "11px";
-    brandText.style.letterSpacing = "0.5px";
-    brandText.style.textShadow = "0 0 5px rgba(157, 78, 221, 0.7)";
-    brandText.style.textTransform = "uppercase";
     brandText.textContent = "REVAMP.GG";
-    brandText.style.backgroundColor = "transparent"; // No background
 
-    // Add the subtle pulse animation
-    const styleEl = document.createElement("style");
-    styleEl.textContent = `
-      @keyframes textPulse {
-        0% { color: rgba(157, 78, 221, 0.8); text-shadow: 0 0 5px rgba(157, 78, 221, 0.7); }
-        50% { color: rgba(186, 85, 211, 1); text-shadow: 0 0 8px rgba(186, 85, 211, 0.9); }
-        100% { color: rgba(157, 78, 221, 0.8); text-shadow: 0 0 5px rgba(157, 78, 221, 0.7); }
-      }
-      
-      .revamp-brand-text {
-        animation: textPulse 3s infinite ease-in-out;
-      }
-    `;
-    document.head.appendChild(styleEl);
+    // Add brand text class
     brandText.classList.add("revamp-brand-text");
 
     const title = document.createElement("h3");
@@ -598,10 +572,10 @@ function displayComparisonChart(
     title.style.textAlign = "center";
     title.style.margin = "0";
     title.style.padding = "8px 0";
-    title.style.color = textColor;
-    title.style.fontFamily = "'Arial', sans-serif";
+    title.style.color = styles.colors.textColor;
+    title.style.fontFamily = styles.typography.fontFamily;
     title.style.fontWeight = "600";
-    title.style.fontSize = "16px";
+    title.style.fontSize = styles.typography.titleSize;
 
     header.appendChild(title);
     header.appendChild(brandText);
@@ -622,7 +596,7 @@ function displayComparisonChart(
         type: "line",
         name: "Original",
         showInLegend: true,
-        color: originalLineColor,
+        color: styles.colors.originalLineColor,
         lineThickness: 2,
         markerSize: 0,
         dataPoints: originalData.map((point, i) => ({
@@ -640,7 +614,7 @@ function displayComparisonChart(
         type: "line",
         name: "Rake-Adjusted",
         showInLegend: true,
-        color: adjustedLineColor,
+        color: styles.colors.adjustedLineColor,
         lineThickness: 2,
         markerSize: 0,
         dataPoints: rakeAdjustedData.map((point) => ({
@@ -658,40 +632,40 @@ function displayComparisonChart(
 
     // Create the chart with axisY2 on the right-hand side.
     const chart = new CanvasJS.Chart(container.id, {
-      backgroundColor: darkBg,
+      backgroundColor: styles.colors.darkBg,
       zoomEnabled: true,
       animationEnabled: true,
       theme: "dark2",
       axisX: {
         title: "Hand Number",
-        titleFontColor: textColor,
-        titleFontSize: 14,
-        labelFontColor: textColor,
-        lineColor: borderColor,
-        gridColor: "#242424",
+        titleFontColor: styles.colors.textColor,
+        titleFontSize: parseInt(styles.typography.subtitleSize),
+        labelFontColor: styles.colors.textColor,
+        lineColor: styles.colors.borderColor,
+        gridColor: "rgba(36, 36, 36, 1)",
         tickLength: 0,
       },
       // Define the secondary Y axis which renders on the right.
       axisY2: {
         title: "Amount",
-        labelFontColor: textColor,
-        lineColor: borderColor,
-        gridColor: "#242424",
+        labelFontColor: styles.colors.textColor,
+        lineColor: styles.colors.borderColor,
+        gridColor: "rgba(36, 36, 36, 1)",
         valueFormatString: "$#,##0",
         tickLength: 0,
         // Add any other axisY options as needed.
       },
       toolTip: {
         shared: true,
-        borderColor: borderColor,
-        backgroundColor: mediumBg,
-        fontColor: textColor,
-        cornerRadius: 4,
+        borderColor: styles.colors.borderColor,
+        backgroundColor: styles.colors.mediumBg,
+        fontColor: styles.colors.textColor,
+        cornerRadius: styles.borders.radius,
       },
       legend: {
         cursor: "pointer",
-        fontColor: textColor,
-        fontSize: 14,
+        fontColor: styles.colors.textColor,
+        fontSize: parseInt(styles.typography.defaultSize),
         verticalAlign: "bottom",
         horizontalAlign: "center",
         itemclick: function (e) {
@@ -710,10 +684,10 @@ function displayComparisonChart(
         text: `Total Rake Impact: $${difference.toFixed(
           2
         )} (${percentDifference.toFixed(1)}%)`,
-        fontColor: textColor,
-        fontSize: 16,
+        fontColor: styles.colors.textColor,
+        fontSize: parseInt(styles.typography.titleSize),
         fontWeight: "normal",
-        fontFamily: "'Arial', sans-serif",
+        fontFamily: styles.typography.fontFamily,
         padding: 10,
       },
       data: [
@@ -723,7 +697,7 @@ function displayComparisonChart(
           axisYType: "secondary",
           name: "Original",
           showInLegend: true,
-          color: originalLineColor,
+          color: styles.colors.originalLineColor,
           lineThickness: 2,
           markerSize: 0,
           dataPoints: originalData.map((point, i) => ({
@@ -743,7 +717,7 @@ function displayComparisonChart(
           axisYType: "secondary",
           name: "Rake-Adjusted",
           showInLegend: true,
-          color: adjustedLineColor,
+          color: styles.colors.adjustedLineColor,
           lineThickness: 2,
           markerSize: 0,
           dataPoints: rakeAdjustedData.map((point) => ({
@@ -871,23 +845,24 @@ function displayComparisonChart(
 
     // Create summary section with enhanced styling
     const resultsContainer = document.createElement("div");
-    resultsContainer.style.marginTop = "20px";
+    resultsContainer.style.marginTop = styles.spacing.large;
 
     // Create rake impact summary cards styled like the image
     const rakeImpactSummary = document.createElement("div");
-    rakeImpactSummary.style.padding = "15px";
-    rakeImpactSummary.style.marginBottom = "20px";
-    rakeImpactSummary.style.backgroundColor = mediumBg;
-    // rakeImpactSummary.style.borderRadius = "5px";
+
+    // Apply section styles
+    const sectionStyle = styles.ui.getSectionStyle();
+    Object.keys(sectionStyle).forEach((key) => {
+      rakeImpactSummary.style[key] = sectionStyle[key];
+    });
     rakeImpactSummary.style.textAlign = "center";
-    rakeImpactSummary.style.border = `1px solid ${borderColor}`;
 
     const summaryTitle = document.createElement("div");
     summaryTitle.textContent = "Rake Impact Summary";
-    summaryTitle.style.marginBottom = "15px";
-    summaryTitle.style.fontSize = "16px";
+    summaryTitle.style.marginBottom = styles.spacing.medium;
+    summaryTitle.style.fontSize = styles.typography.titleSize;
     summaryTitle.style.fontWeight = "bold";
-    summaryTitle.style.color = textColor;
+    summaryTitle.style.color = styles.colors.textColor;
 
     const summaryCards = document.createElement("div");
     summaryCards.style.display = "flex";
@@ -900,23 +875,23 @@ function displayComparisonChart(
       const card = document.createElement("div");
       card.style.flex = "1";
       card.style.minWidth = "150px";
-      card.style.padding = "15px";
-      card.style.backgroundColor = lightBg;
-      //   card.style.borderRadius = "5px";
-      card.style.border = `1px solid ${borderColor}`;
-      card.style.borderLeft = `3px solid ${themeColor}`;
+      card.style.padding = styles.spacing.medium;
+      card.style.backgroundColor = styles.colors.lightBg;
+      card.style.borderRadius = `${styles.borders.radius}px`;
+      card.style.border = `1px solid ${styles.colors.borderColor}`;
+      card.style.borderLeft = `3px solid ${styles.colors.primary}`;
 
       const cardTitle = document.createElement("div");
       cardTitle.textContent = title;
-      cardTitle.style.fontSize = "13px";
-      cardTitle.style.color = "#aaa";
-      cardTitle.style.marginBottom = "8px";
+      cardTitle.style.fontSize = styles.typography.smallSize;
+      cardTitle.style.color = styles.colors.mutedTextColor;
+      cardTitle.style.marginBottom = styles.spacing.small;
 
       const cardValue = document.createElement("div");
       cardValue.innerHTML = value;
       cardValue.style.fontSize = "18px";
       cardValue.style.fontWeight = "bold";
-      cardValue.style.color = textColor;
+      cardValue.style.color = styles.colors.textColor;
 
       card.appendChild(cardTitle);
       card.appendChild(cardValue);
@@ -947,21 +922,23 @@ function displayComparisonChart(
 
     function createResultsTable(title, stakesData, totals, isOriginal) {
       const tableContainer = document.createElement("div");
-      tableContainer.style.marginBottom = "20px";
-      tableContainer.style.backgroundColor = mediumBg;
-      tableContainer.style.borderRadius = "5px";
-      tableContainer.style.padding = "15px";
-      tableContainer.style.border = `1px solid ${borderColor}`;
+      tableContainer.style.marginBottom = styles.spacing.large;
+
+      // Apply section styles
+      const tableSectionStyle = styles.ui.getSectionStyle();
+      Object.keys(tableSectionStyle).forEach((key) => {
+        tableContainer.style[key] = tableSectionStyle[key];
+      });
 
       // Create table header
       const tableTitle = document.createElement("div");
       tableTitle.textContent = title;
       tableTitle.style.textAlign = "center";
-      tableTitle.style.marginBottom = "15px";
+      tableTitle.style.marginBottom = styles.spacing.medium;
       tableTitle.style.color = isOriginal
-        ? originalLineColor
-        : adjustedLineColor;
-      tableTitle.style.fontSize = "16px";
+        ? styles.colors.originalLineColor
+        : styles.colors.adjustedLineColor;
+      tableTitle.style.fontSize = styles.typography.titleSize;
       tableTitle.style.fontWeight = "bold";
 
       // Add a colored accent bar under the title
@@ -969,33 +946,34 @@ function displayComparisonChart(
       accentBar.style.height = "3px";
       accentBar.style.width = "60px";
       accentBar.style.backgroundColor = isOriginal
-        ? originalLineColor
-        : adjustedLineColor;
-      accentBar.style.margin = "0 auto 15px auto";
-      accentBar.style.borderRadius = "2px";
+        ? styles.colors.originalLineColor
+        : styles.colors.adjustedLineColor;
+      accentBar.style.margin = `0 auto ${styles.spacing.medium} auto`;
+      accentBar.style.borderRadius = `${styles.borders.radius}px`;
 
       tableContainer.appendChild(tableTitle);
       tableContainer.appendChild(accentBar);
 
       const table = document.createElement("table");
-      table.style.width = "100%";
-      table.style.borderCollapse = "collapse";
-      table.style.color = textColor;
-      table.style.fontSize = "14px";
+      // Apply table styles
+      const tableStyle = styles.ui.getTableStyle();
+      Object.keys(tableStyle).forEach((key) => {
+        table.style[key] = tableStyle[key];
+      });
 
       // Table header styling
-      const headerBg = lightBg;
+      const headerBg = styles.colors.lightBg;
       const cellPadding = "10px";
 
       let tableHTML = `
         <thead>
           <tr style="background-color: ${headerBg};">
-            <th style="padding: ${cellPadding}; text-align: left; border-bottom: 1px solid ${borderColor};">Stakes</th>
-            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${borderColor};">Hands</th>
-            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${borderColor};">Win/Loss</th>
-            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${borderColor};">BB Win/Loss</th>
-            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${borderColor};">BB/100</th>
-            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${borderColor};">Percentage</th>
+            <th style="padding: ${cellPadding}; text-align: left; border-bottom: 1px solid ${styles.colors.borderColor};">Stakes</th>
+            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${styles.colors.borderColor};">Hands</th>
+            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${styles.colors.borderColor};">Win/Loss</th>
+            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${styles.colors.borderColor};">BB Win/Loss</th>
+            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${styles.colors.borderColor};">BB/100</th>
+            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${styles.colors.borderColor};">Percentage</th>
           </tr>
         </thead>
         <tbody>
@@ -1008,57 +986,69 @@ function displayComparisonChart(
       sortedStakes.forEach((stake) => {
         if (stake.hands === 0) return;
 
-        const winLossColor = stake.winloss >= 0 ? positiveColor : negativeColor;
-        const bbPerColor = stake.bbPer100 >= 0 ? positiveColor : negativeColor;
+        const winLossColor =
+          stake.winloss >= 0
+            ? styles.colors.positiveColor
+            : styles.colors.negativeColor;
+        const bbPerColor =
+          stake.bbPer100 >= 0
+            ? styles.colors.positiveColor
+            : styles.colors.negativeColor;
 
         tableHTML += `
           <tr>
-            <td style="padding: ${cellPadding}; text-align: left; border-bottom: 1px solid ${borderColor};">${
-          stake.stakes
-        }</td>
-            <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${borderColor};">${
-          stake.hands
-        }</td>
-            <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${borderColor}; color: ${winLossColor};">$${stake.winloss.toFixed(
-          2
-        )}</td>
-            <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${borderColor}; color: ${winLossColor};">${stake.bbResult.toFixed(
-          2
-        )}</td>
-            <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${borderColor}; color: ${bbPerColor};">${stake.bbPer100.toFixed(
-          2
-        )}</td>
-            <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${borderColor};">${
-          stake.percentage
-        }</td>
+            <td style="padding: ${cellPadding}; text-align: left; border-bottom: 1px solid ${
+          styles.colors.borderColor
+        };">${stake.stakes}</td>
+            <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${
+          styles.colors.borderColor
+        };">${stake.hands}</td>
+            <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${
+          styles.colors.borderColor
+        }; color: ${winLossColor};">$${stake.winloss.toFixed(2)}</td>
+            <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${
+          styles.colors.borderColor
+        }; color: ${winLossColor};">${stake.bbResult.toFixed(2)}</td>
+            <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${
+          styles.colors.borderColor
+        }; color: ${bbPerColor};">${stake.bbPer100.toFixed(2)}</td>
+            <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${
+          styles.colors.borderColor
+        };">${stake.percentage}</td>
           </tr>
         `;
       });
 
       // Total row
       const totalWinLossColor =
-        totals.winloss >= 0 ? positiveColor : negativeColor;
+        totals.winloss >= 0
+          ? styles.colors.positiveColor
+          : styles.colors.negativeColor;
       const totalBbPerColor =
-        totals.bbPer100 >= 0 ? positiveColor : negativeColor;
+        totals.bbPer100 >= 0
+          ? styles.colors.positiveColor
+          : styles.colors.negativeColor;
 
       tableHTML += `
         <tr style="font-weight: bold; background-color: ${headerBg};">
-          <td style="padding: ${cellPadding}; text-align: left; border-top: 1px solid ${borderColor};">TOTAL</td>
-          <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${borderColor};">${
-        totals.hands
-      }</td>
-          <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${borderColor}; color: ${totalWinLossColor};">$${totals.winloss.toFixed(
-        2
-      )}</td>
-          <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${borderColor}; color: ${totalWinLossColor};">${totals.bbResult.toFixed(
-        2
-      )}</td>
-          <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${borderColor}; color: ${totalBbPerColor};">${totals.bbPer100.toFixed(
-        2
-      )}</td>
-          <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${borderColor};">${
-        totals.percentage
-      }</td>
+          <td style="padding: ${cellPadding}; text-align: left; border-top: 1px solid ${
+        styles.colors.borderColor
+      };">TOTAL</td>
+          <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${
+        styles.colors.borderColor
+      };">${totals.hands}</td>
+          <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${
+        styles.colors.borderColor
+      }; color: ${totalWinLossColor};">$${totals.winloss.toFixed(2)}</td>
+          <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${
+        styles.colors.borderColor
+      }; color: ${totalWinLossColor};">${totals.bbResult.toFixed(2)}</td>
+          <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${
+        styles.colors.borderColor
+      }; color: ${totalBbPerColor};">${totals.bbPer100.toFixed(2)}</td>
+          <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${
+        styles.colors.borderColor
+      };">${totals.percentage}</td>
         </tr>
         </tbody>
       `;
@@ -1101,19 +1091,22 @@ function displayComparisonChart(
 
     // Create footer note
     const notesContainer = document.createElement("div");
-    notesContainer.style.marginTop = "15px";
+    notesContainer.style.marginTop = styles.spacing.medium;
     notesContainer.style.padding = "12px";
-    notesContainer.style.fontSize = "12px";
-    notesContainer.style.color = "#aaa";
+    notesContainer.style.fontSize = styles.typography.smallSize;
+    notesContainer.style.color = styles.colors.mutedTextColor;
     notesContainer.style.textAlign = "center";
-    notesContainer.style.backgroundColor = mediumBg;
-    // notesContainer.style.borderRadius = "5px";
-    notesContainer.style.border = `1px solid ${borderColor}`;
+
+    // Apply section styles
+    const noteSectionStyle = styles.ui.getSectionStyle();
+    Object.keys(noteSectionStyle).forEach((key) => {
+      notesContainer.style[key] = noteSectionStyle[key];
+    });
 
     notesContainer.innerHTML = `
       <div style="margin-bottom: 5px;">Note: Rake calculation assumes 5% rake with a cap of 3 big blinds per pot.</div>
       <div>Each hand is matched to its session based on timestamp, using the correct big blind size for that session.</div>
-      <div style="margin-top: 10px; font-weight: bold; color: ${themeColor}; text-transform: uppercase; letter-spacing: 1px;" class="revamp-brand-text">Powered by REVAMP.GG</div>
+      <div style="margin-top: 10px; font-weight: bold; color: ${styles.colors.primary}; text-transform: uppercase; letter-spacing: 1px;" class="revamp-brand-text">Powered by REVAMP.GG</div>
     `;
 
     wrapper.appendChild(notesContainer);
@@ -1350,110 +1343,58 @@ function enhanceButton(button, buttonType) {
     button.style.position = "relative";
   }
 
-  // Define border properties with thicker borders
-  const borderWidth = "2px";
-  const borderColor = "#9d4edd";
-  const borderStyle = "solid";
-  const glowEffect = "0 0 10px rgba(157, 78, 221, 0.7)";
-  const hoverGlowEffect = "0 0 15px rgba(176, 102, 230, 0.9)";
-  const hoverBorderColor = "#b066e6";
+  // Use our shared style variables
+  const styles = window.RevampStyles;
+  const isSmallButton = buttonType !== "EV Graph";
 
   // Apply border and glow to the button
   button.style.overflow = "visible";
-  button.style.boxShadow = glowEffect;
-  button.style.borderWidth = borderWidth;
-  button.style.borderStyle = borderStyle;
-  button.style.borderColor = borderColor;
+  button.style.boxShadow = styles.effects.glow;
+  button.style.borderWidth = styles.borders.width;
+  button.style.borderStyle = styles.borders.style;
+  button.style.borderColor = styles.colors.primary;
   button.style.boxSizing = "border-box";
-  //   button.style.borderRadius = "5px";
+  button.style.borderRadius = `${styles.borders.radius}px`;
 
   // Create the badge container
   const badgeContainer = document.createElement("div");
   badgeContainer.className = "revamp-badge";
-  badgeContainer.style.position = "absolute";
-  badgeContainer.style.top = "0";
-  badgeContainer.style.right = "0";
-  badgeContainer.style.background = "transparent"; // Make background transparent
 
-  badgeContainer.style.zIndex = "5";
-  badgeContainer.style.boxSizing = "border-box";
-  badgeContainer.style.display = "flex";
-  badgeContainer.style.alignItems = "center";
-  badgeContainer.style.justifyContent = "center";
-  badgeContainer.style.pointerEvents = "none"; // Important: prevent separate hover on the badge
+  // Apply badge styles
+  const badgeStyle = styles.ui.getBadgeStyle(isSmallButton);
+  Object.keys(badgeStyle).forEach((key) => {
+    badgeContainer.style[key] = badgeStyle[key];
+  });
 
   // Add the text
   const revampText = document.createElement("span");
   revampText.textContent = "REVAMP.GG";
-  revampText.style.display = "block";
-  revampText.style.color = borderColor;
-  revampText.style.fontFamily = "'Arial', sans-serif";
-  revampText.style.fontWeight = "bold";
-  revampText.style.letterSpacing = "0.5px";
-  revampText.style.textShadow = "0 0 5px rgba(157, 78, 221, 0.7)";
-  revampText.style.pointerEvents = "none";
-  revampText.style.lineHeight = "1";
-  revampText.style.textAlign = "center";
 
-  // Set appropriate font size and increased padding based on button type
-  if (buttonType === "EV Graph") {
-    revampText.style.fontSize = "11px";
-    badgeContainer.style.padding = "4px 8px 4px 8px";
-  } else {
-    revampText.style.fontSize = "8px";
-    badgeContainer.style.padding = "3px 6px 3px 6px";
-  }
-
-  // Add the subtle animations
-  if (!document.getElementById("revamp-glow-animations")) {
-    const styleEl = document.createElement("style");
-    styleEl.id = "revamp-glow-animations";
-    styleEl.textContent = `
-      @keyframes borderGlow {
-        0% { border-color: rgba(157, 78, 221, 0.7); }
-        25% { border-color: rgba(138, 43, 226, 0.9); }
-        50% { border-color: rgba(186, 85, 211, 0.8); }
-        75% { border-color: rgba(138, 43, 226, 0.9); }
-        100% { border-color: rgba(157, 78, 221, 0.7); }
-      }
-      
-      @keyframes textPulse {
-        0% { color: rgba(157, 78, 221, 0.8); text-shadow: 0 0 5px rgba(157, 78, 221, 0.7); }
-        50% { color: rgba(186, 85, 211, 1); text-shadow: 0 0 8px rgba(186, 85, 211, 0.9); }
-        100% { color: rgba(157, 78, 221, 0.8); text-shadow: 0 0 5px rgba(157, 78, 221, 0.7); }
-      }
-      
-      /* Apply animations to button and text */
-      button[revamp-enhanced="true"] {
-        animation: borderGlow 3s infinite ease-in-out;
-      }
-      
-      button[revamp-enhanced="true"] .revamp-badge span {
-        animation: textPulse 3s infinite ease-in-out;
-      }
-    `;
-    document.head.appendChild(styleEl);
-  }
+  // Apply brand text styles
+  const textStyle = styles.ui.getBrandTextStyle(isSmallButton);
+  Object.keys(textStyle).forEach((key) => {
+    revampText.style[key] = textStyle[key];
+  });
 
   // Enhanced hover effect - only on the button but affects text color
   button.addEventListener("mouseover", function () {
     // Apply hover effect to button
-    button.style.boxShadow = hoverGlowEffect;
-    button.style.borderColor = hoverBorderColor;
+    button.style.boxShadow = styles.effects.hoverGlow;
+    button.style.borderColor = styles.colors.primaryLight;
 
     // Update text color
-    revampText.style.color = hoverBorderColor;
-    revampText.style.textShadow = "0 0 10px rgba(176, 102, 230, 0.9)";
+    revampText.style.color = styles.colors.primaryLight;
+    revampText.style.textShadow = styles.effects.hoverTextShadow;
   });
 
   button.addEventListener("mouseout", function () {
     // Reset button to default
-    button.style.boxShadow = glowEffect;
-    button.style.borderColor = borderColor;
+    button.style.boxShadow = styles.effects.glow;
+    button.style.borderColor = styles.colors.primary;
 
     // Reset text color
-    revampText.style.color = borderColor;
-    revampText.style.textShadow = "0 0 5px rgba(157, 78, 221, 0.7)";
+    revampText.style.color = styles.colors.primary;
+    revampText.style.textShadow = styles.effects.textShadow;
 
     // Restart animations
     button.style.animation = "none";

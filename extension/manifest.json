@@ -12,7 +12,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["pageScript.js"],
+      "resources": ["pageScript.js", "styles.js"],
       "matches": ["https://my.pokercraft.com/*"]
     }
   ],
