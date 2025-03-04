@@ -385,11 +385,10 @@ function matchHandsToSessions(handData, sessions) {
   };
 }
 
-// Calculate rake-adjusted data with dynamic big blind sizes
 function calculateRakeAdjustedData(originalData, rakePercentage, rakeCap_BB) {
   const adjustedData = JSON.parse(JSON.stringify(originalData));
   const handResults = [];
-  
+
   // Extract individual hand results
   for (let i = 0; i < adjustedData.length; i++) {
     if (i === 0) {
@@ -423,21 +422,24 @@ function calculateRakeAdjustedData(originalData, rakePercentage, rakeCap_BB) {
       const rakeCap = rakeCap_BB * bigBlindSize;
       const estimatedPotSize = hand.amount * 2; // Assuming the pot is twice our win
       const rake = Math.min(estimatedPotSize * rakePercentage, rakeCap);
-      
+
       // Calculate EV adjustment
-      // For EV, we need to calculate what percentage of the pot we were "entitled to win"
-      // And then apply that percentage to the rake-adjusted pot
       let adjustedEv = hand.ev;
-      
+
       if (hand.ev > 0) {
-        // Calculate our EV as a percentage of the hypothetical pot
-        const evToPotRatio = hand.ev / estimatedPotSize;
-        // Adjust the pot size by subtracting rake
-        const adjustedPotSize = estimatedPotSize - rake;
-        // Calculate the adjusted EV using the same ratio but with the adjusted pot
-        adjustedEv = adjustedPotSize * evToPotRatio;
+        // Calculate our equity in the pot
+        // For a winning hand, our investment is approximately half the pot
+        // Our equity can be estimated by adding our profit to our investment and dividing by the pot
+        const ourInvestment = estimatedPotSize / 2; // This is an estimate
+        const ourEquity = (ourInvestment + hand.ev) / estimatedPotSize;
+
+        // Our share of the rake based on our equity
+        const ourRakeShare = rake * ourEquity;
+
+        // Adjust EV by subtracting our share of the rake
+        adjustedEv = hand.ev - ourRakeShare;
       }
-      
+
       return {
         ...hand,
         amount: hand.amount - rake, // Rake-adjusted winnings
@@ -446,7 +448,7 @@ function calculateRakeAdjustedData(originalData, rakePercentage, rakeCap_BB) {
         bigBlindSize: bigBlindSize,
       };
     }
-    
+
     return {
       ...hand,
       appliedRake: 0,
@@ -454,7 +456,7 @@ function calculateRakeAdjustedData(originalData, rakePercentage, rakeCap_BB) {
     };
   });
 
-  // Calculate cumulative totals
+  // Calculate cumulative totals (rest of the function continues as before)
   let cumulativeAmount = 0;
   let cumulativeEv = 0;
   let totalRake = 0;
@@ -606,14 +608,16 @@ function displayComparisonChart(
     targetElement.parentNode.insertBefore(wrapper, targetElement.nextSibling);
 
     const originalFinal = originalData[originalData.length - 1].y;
-    const adjustedFinal = rakeAdjustedData[rakeAdjustedData.length - 1].data.amount;
-    const adjustedEvFinal = rakeAdjustedData[rakeAdjustedData.length - 1].data.ev;
+    const adjustedFinal =
+      rakeAdjustedData[rakeAdjustedData.length - 1].data.amount;
+    const adjustedEvFinal =
+      rakeAdjustedData[rakeAdjustedData.length - 1].data.ev;
     const difference = originalFinal - adjustedFinal;
     const percentDifference = (difference / Math.abs(originalFinal)) * 100;
 
     // Define colors for the graph
-    const winlossColor = styles.colors.positiveColor;       // Green for winloss
-    const evColor = '#FF9800';                              // Orange for EV
+    const winlossColor = styles.colors.positiveColor; // Green for winloss
+    const evColor = "#FF9800"; // Orange for EV
 
     // Create the chart with axisY2 on the right-hand side.
     const chart = new CanvasJS.Chart(container.id, {
@@ -622,7 +626,7 @@ function displayComparisonChart(
       animationEnabled: true,
       theme: "dark2",
       axisX: {
-        title: "Hand Number",
+        // title: "Hand number",
         titleFontColor: styles.colors.textColor,
         titleFontSize: parseInt(styles.typography.subtitleSize),
         labelFontColor: styles.colors.textColor,
@@ -632,7 +636,7 @@ function displayComparisonChart(
       },
       // Define the secondary Y axis which renders on the right.
       axisY2: {
-        title: "Amount ($)",
+        // title: "Amount ($)",
         labelFontColor: styles.colors.textColor,
         lineColor: styles.colors.borderColor,
         gridColor: "rgba(36, 36, 36, 1)",
@@ -687,7 +691,11 @@ function displayComparisonChart(
             x: point.x,
             y: point.data.amount,
             label: point.label,
-            toolTipContent: `Hand ${point.label}<br/>Win/Loss: $${point.data.amount.toFixed(2)}<br/>Big Blind: $${point.bigBlindSize.toFixed(2)}`,
+            toolTipContent: `Hand ${
+              point.label
+            }<br/>Win/Loss: $${point.data.amount.toFixed(
+              2
+            )}<br/>Big Blind: $${point.bigBlindSize.toFixed(2)}`,
           })),
         },
         {
@@ -702,7 +710,11 @@ function displayComparisonChart(
             x: point.x,
             y: point.data.ev,
             label: point.label,
-            toolTipContent: `Hand ${point.label}<br/>All-in EV: $${point.data.ev.toFixed(2)}<br/>Big Blind: $${point.bigBlindSize.toFixed(2)}`,
+            toolTipContent: `Hand ${
+              point.label
+            }<br/>All-in EV: $${point.data.ev.toFixed(
+              2
+            )}<br/>Big Blind: $${point.bigBlindSize.toFixed(2)}`,
           })),
         },
       ],
@@ -722,7 +734,7 @@ function displayComparisonChart(
     });
 
     const totalHands = originalData.length;
-    
+
     // Calculate stats for All-in EV data
     const evStakeData = {};
     stakeDistribution.forEach((stake) => {
@@ -736,7 +748,7 @@ function displayComparisonChart(
         bbPer100: 0,
       };
     });
-    
+
     // Use the existing adjustedStakeData object for Win/Loss
     const adjustedStakeData = {};
     stakeDistribution.forEach((stake) => {
@@ -764,7 +776,8 @@ function displayComparisonChart(
         adjustedAmount = hand.data.amount;
         adjustedEv = hand.data.ev;
       } else {
-        adjustedAmount = hand.data.amount - rakeAdjustedData[index - 1].data.amount;
+        adjustedAmount =
+          hand.data.amount - rakeAdjustedData[index - 1].data.amount;
         adjustedEv = hand.data.ev - rakeAdjustedData[index - 1].data.ev;
       }
 
@@ -802,7 +815,8 @@ function displayComparisonChart(
       ),
       percentage: "100%",
     };
-    adjustedTotal.bbPer100 = (adjustedTotal.bbResult / adjustedTotal.hands) * 100;
+    adjustedTotal.bbPer100 =
+      (adjustedTotal.bbResult / adjustedTotal.hands) * 100;
 
     const evTotal = {
       hands: totalHands,
@@ -817,8 +831,15 @@ function displayComparisonChart(
 
     const rakeImpact = {
       amount: difference,
-      bbAmount: difference / (adjustedStakeData[Object.keys(adjustedStakeData)[0]]?.bigBlind || 0.1),
-      bbPer100: difference / (adjustedStakeData[Object.keys(adjustedStakeData)[0]]?.bigBlind || 0.1) / totalHands * 100,
+      bbAmount:
+        difference /
+        (adjustedStakeData[Object.keys(adjustedStakeData)[0]]?.bigBlind || 0.1),
+      bbPer100:
+        (difference /
+          (adjustedStakeData[Object.keys(adjustedStakeData)[0]]?.bigBlind ||
+            0.1) /
+          totalHands) *
+        100,
     };
 
     // Create summary section with enhanced styling
@@ -901,7 +922,7 @@ function displayComparisonChart(
     function createResultsTable(title, stakesData, totals, color) {
       const tableContainer = document.createElement("div");
       tableContainer.style.marginBottom = styles.spacing.large;
-      
+
       // Apply section styles
       const tableSectionStyle = styles.ui.getSectionStyle();
       Object.keys(tableSectionStyle).forEach((key) => {
