@@ -1,0 +1,1 @@
+when clicking next x hands I think if fully redoes everything including the mapping from hands to sessions. we should obv retain the mappings and only have to map the new hands to improve performance.

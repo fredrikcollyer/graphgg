@@ -96,6 +96,34 @@ function extractPokerSessionData() {
     return { sessions: [] };
   }
 
+  // First, extract all tooltip dates with years from the DOM
+  const dateTooltips = document.querySelectorAll(
+    ".cdk-describedby-message-container div[role='tooltip']"
+  );
+
+  // Create a mapping from "MMM DD, HH:MM" format (without year) to year
+  const dateTimeToYearMap = {};
+
+  Array.from(dateTooltips).forEach((tooltip) => {
+    const fullDateStr = tooltip.textContent.trim(); // e.g. "Jan 07 2025, 15:56"
+
+    // Parse the full date string to extract parts
+    const match = fullDateStr.match(/^(\w+) (\d+) (\d{4}), (\d+:\d+)$/);
+    if (match) {
+      const [_, month, day, year, time] = match;
+
+      // Create a key format that matches what we extract from the session row (without year)
+      const lookupKey = `${month} ${day}, ${time}`;
+      dateTimeToYearMap[lookupKey] = year;
+    }
+  });
+
+  console.log(
+    `Found ${
+      Object.keys(dateTimeToYearMap).length
+    } dates with years in tooltips`
+  );
+
   const sessions = Array.from(sessionRows).map((row, index) => {
     // Helper function to get text content from a cell by column class
     const getCellContent = (columnClass) => {
@@ -114,10 +142,15 @@ function extractPokerSessionData() {
     const durationStr = getCellContent("Duration");
     let durationMs = 0;
     if (durationStr) {
-      const [hours, minutes, seconds] = durationStr.split(":").map(Number);
-      durationMs = (hours * 3600 + minutes * 60 + seconds) * 1000;
+      if (durationStr === "-") {
+        // If duration is shown as "-", set it to 1 minute
+        durationMs = 60000; // 1 minute in milliseconds
+        console.warn("Duration is missing for session", index + 1);
+      } else {
+        const [hours, minutes, seconds] = durationStr.split(":").map(Number);
+        durationMs = (hours * 3600 + minutes * 60 + seconds) * 1000;
+      }
     }
-
     // Extract stake information
     const stakesStr = getCellContent("Stakes");
     let bigBlind = null;
@@ -130,7 +163,32 @@ function extractPokerSessionData() {
 
     let startTimestamp = null;
     if (startTime) {
-      const currentYear = new Date().getFullYear();
+      console.log("Session start time:", startTime);
+
+      // Get the year from our mapping
+      const year = dateTimeToYearMap[startTime];
+
+      // Throw an error if we can't find the year for this session
+      if (!year) {
+        console.error("=== SESSION YEAR ERROR ===");
+        console.error(
+          `Could not find year for session starting at: ${startTime}`
+        );
+        console.error(
+          `Available dates in tooltips: ${
+            Object.keys(dateTimeToYearMap).length
+          }`
+        );
+
+        // Log a few sample dates from the mapping for debugging
+        const sampleDates = Object.keys(dateTimeToYearMap).slice(0, 5);
+        console.error("Sample dates from tooltips:", sampleDates);
+
+        throw new Error(
+          `ERROR: Could not determine year for session: ${startTime}`
+        );
+      }
+
       const [monthDay, time] = startTime.split(", ");
       const [month, day] = monthDay.split(" ");
       const [hour, minute] = time.split(":");
@@ -154,21 +212,27 @@ function extractPokerSessionData() {
       const monthNum = monthMap[month];
       if (monthNum !== undefined) {
         const dateObj = new Date(
-          currentYear,
+          parseInt(year),
           monthNum,
           parseInt(day),
           parseInt(hour),
           parseInt(minute)
         );
         startTimestamp = dateObj.getTime();
+        console.log(`Using year ${year} for session ${startTime}`);
       }
     }
+
+    // Add a 3-minute buffer to the start and end timestamps for better matching
+    const THREE_MINUTE_BUFFER = 180000;
 
     const session = {
       index: index + 1,
       startTime: startTime,
       startTimestamp: startTimestamp,
-      endTimestamp: startTimestamp ? startTimestamp + durationMs : null,
+      endTimestamp: startTimestamp
+        ? startTimestamp + durationMs + THREE_MINUTE_BUFFER
+        : null,
       duration: durationStr,
       durationMs: durationMs,
       gameType: getCellContent("Game"),
@@ -183,8 +247,8 @@ function extractPokerSessionData() {
     return session;
   });
 
-  // Sort sessions by start timestamp (newest first)
-  sessions.sort((a, b) => (b.startTimestamp || 0) - (a.startTimestamp || 0));
+  // Sort sessions by start timestamp (earliest first)
+  sessions.sort((a, b) => (a.startTimestamp || 0) - (b.startTimestamp || 0));
   return {
     sessions,
   };
@@ -236,9 +300,24 @@ function extractEVGraphData() {
   }
 }
 
-// Match hands to sessions based on timestamps with improved logic
+// Match hands to sessions based on timestamps using a network flow algorithm
 function matchHandsToSessions(handData, sessions) {
-  const sessionStats = sessions.map((session) => ({
+  console.log("Matching hands to sessions using network flow algorithm...");
+
+  // Make a deep copy of hand data that we'll update with session information
+  const matchedData = JSON.parse(JSON.stringify(handData));
+
+  // Initialize tracking for matched hands in each session
+  const sortedSessions = [...sessions].sort(
+    (a, b) => (a.startTimestamp || 0) - (b.startTimestamp || 0)
+  );
+
+  sortedSessions.forEach((session) => {
+    session.assignedHands = 0;
+  });
+
+  // Initialize session stats to track matching
+  const sessionStats = sortedSessions.map((session) => ({
     startTime: session.startTime,
     expectedHands: session.hands,
     matchedHands: 0,
@@ -246,130 +325,123 @@ function matchHandsToSessions(handData, sessions) {
     stakes: session.stakes,
   }));
 
-  const matchedData = JSON.parse(JSON.stringify(handData));
+  // Create stake distribution object
   const stakeDistribution = {};
-  let unmatchedHandsCount = 0;
-  const highestStakesSession = sessions.reduce(
-    (highest, session) =>
-      !highest || session.bigBlind > highest.bigBlind ? session : highest,
-    null
+
+  // Find all valid hand-to-session possibilities
+  const handSessionCompatibility = [];
+
+  // For each hand, determine which session(s) it could belong to
+  matchedData.forEach((hand, handIndex) => {
+    const timestamp = hand.data.timestamp;
+    const handDateTime = new Date(timestamp).toLocaleString();
+
+    // Find sessions where this hand's timestamp falls within the session time range
+    const matchingSessions = sortedSessions
+      .filter(
+        (session) =>
+          session.startTimestamp &&
+          session.endTimestamp &&
+          timestamp >= session.startTimestamp &&
+          timestamp <= session.endTimestamp
+      )
+      .map((session) => sortedSessions.indexOf(session));
+
+    // Store compatibility info
+    handSessionCompatibility.push({
+      handIndex,
+      compatibleSessions: matchingSessions,
+    });
+
+    // Error if no session matches the timestamp
+    if (matchingSessions.length === 0) {
+      console.error("=== SESSION MATCHING ERROR ===");
+      console.error(
+        `Hand ${hand.label} (timestamp: ${timestamp}, ${handDateTime}) does not fall into any session timeframe.`
+      );
+
+      // Log first few sessions for reference
+      const numSessionsToLog = 5;
+      console.error("Available sessions:");
+      sortedSessions.slice(0, numSessionsToLog).forEach((session, idx) => {
+        console.error(
+          `Session ${idx + 1}: ${session.startTime} to ${new Date(
+            session.endTimestamp
+          ).toLocaleString()}`
+        );
+        console.error(
+          `  - Timestamp range: ${session.startTimestamp} - ${session.endTimestamp}`
+        );
+        console.error(
+          `  - Expected hands: ${session.hands}, Assigned: ${session.assignedHands}`
+        );
+        console.error(
+          `  - Stakes: ${session.stakes}, Big Blind: ${session.bigBlind}`
+        );
+      });
+
+      throw new Error(
+        `ERROR: Hand ${hand.label} (timestamp: ${timestamp}, ${handDateTime}) does not fall into any session timeframe.`
+      );
+    }
+  });
+
+  // Run Ford-Fulkerson max flow algorithm with additional checks
+  const assignments = findMaximumBipartiteMatching(
+    handSessionCompatibility,
+    sortedSessions
   );
 
-  matchedData.forEach((hand) => {
-    const timestamp = hand.data.timestamp;
-    const possibleSessions = sessions.filter(
-      (session) =>
-        session.startTimestamp &&
-        session.endTimestamp &&
-        timestamp >= session.startTimestamp &&
-        timestamp <= session.endTimestamp
-    );
+  // Apply the assignments
+  console.log("Applying hand-to-session assignments...");
+  Object.entries(assignments).forEach(([handIndex, sessionIndex]) => {
+    const hand = matchedData[handIndex];
+    const session = sortedSessions[sessionIndex];
 
-    let matchedSession = null;
-    let isUnmatched = false;
+    // Update session counts
+    session.assignedHands++;
+    sessionStats[sessionIndex].matchedHands++;
 
-    if (possibleSessions.length === 0) {
-      const closestSession = sessions.reduce((closest, session) => {
-        if (!session.startTimestamp) return closest;
-        const distanceStart = Math.abs(timestamp - session.startTimestamp);
-        const distanceEnd = Math.abs(timestamp - (session.endTimestamp || 0));
-        const minDistance = Math.min(distanceStart, distanceEnd);
-        if (!closest || minDistance < closest.distance) {
-          return { session, distance: minDistance };
-        }
-        return closest;
-      }, null);
+    // Store session data in the hand record
+    hand.sessionData = {
+      bigBlind: session.bigBlind,
+      stakes: session.stakes,
+      gameType: session.gameType,
+    };
 
-      if (closestSession) {
-        matchedSession = closestSession.session;
-        if (debugIsTrue) {
-          console.warn(
-            `Hand ${hand.label} outside any session timeframe, assigned to closest (${matchedSession.startTime})`
-          );
-        }
-      } else {
-        matchedSession = highestStakesSession;
-        isUnmatched = true;
-        unmatchedHandsCount++;
-        if (debugIsTrue) {
-          console.warn(
-            `Hand ${hand.label} could not be matched to any session, using highest stakes session`
-          );
-        }
-      }
-    } else if (possibleSessions.length === 1) {
-      matchedSession = possibleSessions[0];
-    } else {
-      const uniqueStakes = new Set(possibleSessions.map((s) => s.bigBlind));
-      if (uniqueStakes.size > 1) {
-        matchedSession = possibleSessions.reduce(
-          (highest, session) =>
-            !highest || session.bigBlind > highest.bigBlind ? session : highest,
-          null
-        );
-      } else {
-        matchedSession = possibleSessions.reduce((mostSpace, session) => {
-          const remainingSpace = session.hands - session.assignedHands;
-          if (
-            !mostSpace ||
-            remainingSpace > mostSpace.hands - mostSpace.assignedHands
-          ) {
-            return session;
-          }
-          return mostSpace;
-        }, null);
-      }
-    }
-
-    if (matchedSession) {
-      matchedSession.assignedHands++;
-      if (!isUnmatched) {
-        const sessionIndex = sessions.indexOf(matchedSession);
-        if (sessionIndex !== -1) {
-          sessionStats[sessionIndex].matchedHands++;
-        }
-      }
-
-      const stakesKey = matchedSession.stakes || "Unknown";
-      if (!stakeDistribution[stakesKey]) {
-        stakeDistribution[stakesKey] = {
-          count: 0,
-          bigBlind: matchedSession.bigBlind || 0,
-          totalAmount: 0,
-        };
-      }
-      stakeDistribution[stakesKey].count++;
-      if (hand.data && hand.data.amount !== undefined) {
-        const handAmount =
-          hand.label === 1
-            ? hand.data.amount
-            : hand.data.amount - matchedData[hand.label - 2].data.amount;
-        stakeDistribution[stakesKey].totalAmount += handAmount;
-      }
-
-      hand.sessionData = {
-        bigBlind: matchedSession.bigBlind,
-        stakes: matchedSession.stakes,
-        gameType: matchedSession.gameType,
+    // Update stake distribution statistics
+    const stakesKey = session.stakes || "Unknown";
+    if (!stakeDistribution[stakesKey]) {
+      stakeDistribution[stakesKey] = {
+        count: 0,
+        bigBlind: session.bigBlind || 0,
+        totalAmount: 0,
       };
     }
-  });
 
-  console.log(
-    `Total hands that couldn't be matched to a session and were defaulted to highest stakes: ${unmatchedHandsCount}`
-  );
-
-  Object.keys(stakeDistribution).forEach((stakes) => {
-    const info = stakeDistribution[stakes];
-    if (info.count > 0 && info.bigBlind > 0) {
-      info.bbPer100 = (info.totalAmount / info.bigBlind) * (100 / info.count);
-      info.bbResult = info.totalAmount / info.bigBlind;
-    } else {
-      info.bbPer100 = 0;
-      info.bbResult = 0;
+    stakeDistribution[stakesKey].count++;
+    if (hand.data && hand.data.amount !== undefined) {
+      const handAmount =
+        parseInt(hand.label) === 1
+          ? hand.data.amount
+          : hand.data.amount -
+            matchedData[parseInt(hand.label) - 2].data.amount;
+      stakeDistribution[stakesKey].totalAmount += handAmount;
     }
   });
 
+  // Calculate BB results and BB/100 for stake distribution
+  Object.values(stakeDistribution).forEach((stake) => {
+    if (stake.bigBlind && stake.bigBlind > 0) {
+      stake.bbResult = stake.totalAmount / stake.bigBlind;
+      stake.bbPer100 = (stake.bbResult / stake.count) * 100;
+    } else {
+      stake.bbResult = 0;
+      stake.bbPer100 = 0;
+    }
+  });
+
+  // Convert stake distribution to array format for return value
   const stakeDistributionArray = Object.entries(stakeDistribution).map(
     ([stakes, info]) => ({
       stakes,
@@ -382,12 +454,231 @@ function matchHandsToSessions(handData, sessions) {
     })
   );
 
+  // Log session assignments for debugging
+  console.log("=== SESSION ASSIGNMENTS ===");
+  sortedSessions.forEach((session, idx) => {
+    console.log(
+      `Session ${idx + 1} (${session.startTime}): ${session.assignedHands}/${
+        session.hands
+      } hands assigned`
+    );
+  });
+
+  // Verify that all hands are assigned (not necessarily that all sessions are filled)
+  console.log("=== SESSION ASSIGNMENTS ===");
+  sortedSessions.forEach((session, idx) => {
+    console.log(
+      `Session ${idx + 1} (${session.startTime}): ${session.assignedHands}/${
+        session.hands
+      } hands assigned`
+    );
+  });
+
+  // Check if the total hands assigned equals the total hands we have
+  const totalHandsAssigned = sortedSessions.reduce(
+    (sum, session) => sum + session.assignedHands,
+    0
+  );
+  if (totalHandsAssigned !== matchedData.length) {
+    console.error("=== SESSION ASSIGNMENT ERROR ===");
+    console.error(
+      `Expected to assign all ${matchedData.length} hands, but only assigned ${totalHandsAssigned}`
+    );
+    throw new Error(
+      `ERROR: Failed to assign all hands. ${
+        matchedData.length - totalHandsAssigned
+      } hands were not assigned to any session.`
+    );
+  }
+
+  // Just log a warning for sessions that aren't fully filled
+  const incompleteSessions = sortedSessions.filter(
+    (session) => session.assignedHands !== session.hands
+  );
+  if (incompleteSessions.length > 0) {
+    console.warn("=== SESSION ASSIGNMENT WARNING ===");
+    console.warn(
+      `${incompleteSessions.length} sessions do not have the exact number of hands expected:`
+    );
+
+    incompleteSessions.forEach((session) => {
+      const sessionIndex = sortedSessions.indexOf(session);
+      console.warn(
+        `Session ${sessionIndex + 1} (${session.startTime}): ${
+          session.assignedHands
+        }/${session.hands} hands assigned`
+      );
+    });
+
+    // Just a warning, not an error
+    console.warn(
+      "This is normal if you have more session capacity than hands to assign."
+    );
+  }
+
+  console.log("Hand-to-session assignment completed successfully!");
+
   return {
     matchedData,
     sessionStats,
     stakeDistribution: stakeDistributionArray,
-    unmatchedHandsCount,
+    unmatchedHandsCount: 0, // Always 0 since we throw errors for unmatched hands
   };
+}
+
+// Ford-Fulkerson algorithm implementation for bipartite matching
+function findMaximumBipartiteMatching(handSessionCompatibility, sessions) {
+  console.log("Running Ford-Fulkerson maximum bipartite matching algorithm...");
+
+  // Create a more direct approach to bipartite matching that's easier to debug
+  const numHands = handSessionCompatibility.length;
+  const numSessions = sessions.length;
+
+  // Keep track of which hand is assigned to which session
+  const handToSession = {};
+  // Keep track of how many hands are assigned to each session
+  const sessionHandCounts = Array(numSessions).fill(0);
+  // Track which hands have been processed in DFS
+  const visited = new Set();
+
+  // Log compatibility for debugging
+  console.log(`${numHands} hands, ${numSessions} sessions`);
+  const sessionsNeeded = sessions.reduce((sum, s) => sum + s.hands, 0);
+  console.log(`Total session capacity: ${sessionsNeeded} hands`);
+
+  // Create a map from sessions to compatible hands for faster lookup
+  const sessionToHandsMap = Array(numSessions)
+    .fill()
+    .map(() => []);
+
+  handSessionCompatibility.forEach(({ handIndex, compatibleSessions }) => {
+    compatibleSessions.forEach((sessionIndex) => {
+      sessionToHandsMap[sessionIndex].push(handIndex);
+    });
+  });
+
+  // Sort hands by number of compatible sessions (fewest options first)
+  handSessionCompatibility.sort(
+    (a, b) => a.compatibleSessions.length - b.compatibleSessions.length
+  );
+
+  // Modified Ford-Fulkerson approach for session capacity constraints
+  let assignedHandsCount = 0;
+
+  // First, try to assign hands with the most limited options
+  for (const { handIndex, compatibleSessions } of handSessionCompatibility) {
+    if (handToSession[handIndex] !== undefined) continue; // Already assigned
+
+    // First try sessions that still need more hands
+    let assigned = false;
+    for (const sessionIndex of compatibleSessions) {
+      if (sessionHandCounts[sessionIndex] < sessions[sessionIndex].hands) {
+        handToSession[handIndex] = sessionIndex;
+        sessionHandCounts[sessionIndex]++;
+        assignedHandsCount++;
+        assigned = true;
+        break;
+      }
+    }
+
+    if (!assigned) {
+      // If we couldn't directly assign, try to find an augmenting path
+      visited.clear();
+      if (
+        findAugmentingPath(
+          handIndex,
+          compatibleSessions,
+          handToSession,
+          sessionHandCounts,
+          sessions,
+          visited,
+          sessionToHandsMap
+        )
+      ) {
+        assignedHandsCount++;
+      }
+    }
+  }
+
+  console.log(`Assigned ${assignedHandsCount} hands out of ${numHands}`);
+  console.log(
+    "Session hand counts:",
+    sessionHandCounts
+      .map(
+        (count, idx) => `Session ${idx + 1}: ${count}/${sessions[idx].hands}`
+      )
+      .join(", ")
+  );
+
+  // Verify each session got the correct number of hands
+  sessions.forEach((session, idx) => {
+    if (sessionHandCounts[idx] !== session.hands) {
+      console.error(
+        `Session ${idx + 1} has ${sessionHandCounts[idx]} hands but expected ${
+          session.hands
+        }`
+      );
+    }
+  });
+
+  return handToSession;
+}
+
+// Helper function to find an augmenting path
+function findAugmentingPath(
+  handIndex,
+  compatibleSessions,
+  handToSession,
+  sessionHandCounts,
+  sessions,
+  visited,
+  sessionToHandsMap
+) {
+  if (visited.has(handIndex)) return false;
+  visited.add(handIndex);
+
+  // Try each compatible session
+  for (const sessionIndex of compatibleSessions) {
+    // If the session has room, assign directly
+    if (sessionHandCounts[sessionIndex] < sessions[sessionIndex].hands) {
+      handToSession[handIndex] = sessionIndex;
+      sessionHandCounts[sessionIndex]++;
+      return true;
+    }
+
+    // If the session is full, try to reassign one of its hands
+    const handsInSession = sessionToHandsMap[sessionIndex].filter(
+      (hIdx) => handToSession[hIdx] === sessionIndex
+    );
+
+    // Try to reassign any hand from this session
+    for (const otherHandIndex of handsInSession) {
+      // Find other sessions this hand could go to
+      const otherHandCompat = sessionToHandsMap
+        .map((hands, sIdx) => (hands.includes(otherHandIndex) ? sIdx : -1))
+        .filter((sIdx) => sIdx !== -1 && sIdx !== sessionIndex);
+
+      // Try to reassign the other hand
+      if (
+        findAugmentingPath(
+          otherHandIndex,
+          otherHandCompat,
+          handToSession,
+          sessionHandCounts,
+          sessions,
+          visited,
+          sessionToHandsMap
+        )
+      ) {
+        // If successful, assign this hand to the now-available slot
+        handToSession[handIndex] = sessionIndex;
+        sessionHandCounts[sessionIndex]++;
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 function calculateRakeAdjustedData(originalData, rakePercentage, rakeCap_BB) {
@@ -1162,6 +1453,9 @@ function observeEvGraphButtonAndData() {
       return;
     }
 
+    // Cleanup any previous charts
+    cleanupPreviousCharts();
+
     isProcessing = true;
     console.log("Polling for chart data readiness...");
 
@@ -1259,7 +1553,7 @@ function observeEvGraphButtonAndData() {
         console.log("Next hands button found:", span.textContent);
         span.setAttribute("poker-craft-ext-initialized", "true");
         link.addEventListener("click", handleNextHandsButtonClick);
-        
+
         // No styling for Next Hands button
       }
     }
@@ -1292,23 +1586,17 @@ function observeEvGraphButtonAndData() {
         console.log("Rush & Cash button found. Applying styling.");
         enhanceButton(rushAndCashButton, "Rush & Cash");
       }
-      
+
       // Check for Hold'em button
       const holdemButton = document.querySelector(holdemSelector);
-      if (
-        holdemButton &&
-        !holdemButton.hasAttribute("revamp-enhanced")
-      ) {
+      if (holdemButton && !holdemButton.hasAttribute("revamp-enhanced")) {
         console.log("Hold'em button found. Applying styling.");
         enhanceButton(holdemButton, "Hold'em");
       }
-      
+
       // Check for PLO button
       const omahaButton = document.querySelector(omahaSelector);
-      if (
-        omahaButton &&
-        !omahaButton.hasAttribute("revamp-enhanced")
-      ) {
+      if (omahaButton && !omahaButton.hasAttribute("revamp-enhanced")) {
         console.log("PLO button found. Applying styling.");
         enhanceButton(omahaButton, "PLO");
       }
@@ -1361,23 +1649,17 @@ function observeEvGraphButtonAndData() {
       console.log("Rush & Cash button found immediately. Applying styling.");
       enhanceButton(rushAndCashButton, "Rush & Cash");
     }
-    
+
     // Check for Hold'em button immediately
     const holdemButton = document.querySelector(holdemSelector);
-    if (
-      holdemButton &&
-      !holdemButton.hasAttribute("revamp-enhanced")
-    ) {
+    if (holdemButton && !holdemButton.hasAttribute("revamp-enhanced")) {
       console.log("Hold'em button found immediately. Applying styling.");
       enhanceButton(holdemButton, "Hold'em");
     }
-    
+
     // Check for PLO button immediately
     const omahaButton = document.querySelector(omahaSelector);
-    if (
-      omahaButton &&
-      !omahaButton.hasAttribute("revamp-enhanced")
-    ) {
+    if (omahaButton && !omahaButton.hasAttribute("revamp-enhanced")) {
       console.log("PLO button found immediately. Applying styling.");
       enhanceButton(omahaButton, "PLO");
     }
@@ -1447,11 +1729,14 @@ function enhanceButton(button, buttonType) {
   // Use our shared style variables
   const styles = window.RevampStyles;
   const isSmallButton = buttonType !== "EV Graph";
-  const isNavButton = buttonType === "Rush & Cash" || buttonType === "Hold'em" || buttonType === "PLO";
+  const isNavButton =
+    buttonType === "Rush & Cash" ||
+    buttonType === "Hold'em" ||
+    buttonType === "PLO";
 
   // Apply styling to the button
   button.style.overflow = "visible";
-  
+
   if (isNavButton) {
     // For nav buttons, don't show any borders
     button.style.borderWidth = "0";
@@ -1476,7 +1761,7 @@ function enhanceButton(button, buttonType) {
   Object.keys(badgeStyle).forEach((key) => {
     badgeContainer.style[key] = badgeStyle[key];
   });
-  
+
   // Keep badge in top right for all buttons
 
   // Add the text
@@ -1523,7 +1808,9 @@ function enhanceButton(button, buttonType) {
 
     setTimeout(() => {
       // Restore animations
-      button.style.animation = isNavButton ? "none" : "borderGlow 3s infinite ease-in-out";
+      button.style.animation = isNavButton
+        ? "none"
+        : "borderGlow 3s infinite ease-in-out";
       revampText.style.animation = "textPulse 3s infinite ease-in-out";
     }, 10);
   });
