@@ -1,6 +1,554 @@
-// contentScript.js
+// pageScript.js
 console.log("PokerCraft extension loaded on " + window.location.href);
-const debugIsTrue = false;
+
+// Define theme styles directly in this file
+const themeColors = {
+  primary: "#9d4edd", // Main theme color (purple)
+  primaryLight: "#b066e6", // Lighter theme color for hover states
+  darkBg: "#1a1a1a", // Dark background
+  mediumBg: "#222222", // Medium background
+  lightBg: "#2a2a2a", // Lighter background for contrast
+  borderColor: "#333333", // Border color for containers
+  textColor: "#f0f0f0", // Main text color
+  mutedTextColor: "#aaaaaa", // Muted text color for less important text
+  positiveColor: "#16d609",
+  negativeColor: "#FF0000",
+  originalLineColor: "#64B5F6", // Blue for original data lines
+  adjustedLineColor: "#4CAF50", // Green for adjusted data lines
+  gridColor: "rgba(64, 64, 64, 1)", // Slightly lighter grid lines for better visibility
+};
+
+const themeBorders = {
+  radius: 0, // Border radius for UI elements (0 for square corners)
+  width: "2px", // Default border width
+  style: "solid", // Default border style
+};
+
+const themeEffects = {
+  glow: "0 0 10px rgba(157, 78, 221, 0.7)", // Default glow effect
+  hoverGlow: "0 0 15px rgba(176, 102, 230, 0.9)", // Glow effect on hover
+  textShadow: "0 0 5px rgba(157, 78, 221, 0.7)", // Text shadow for branded text
+  hoverTextShadow: "0 0 10px rgba(176, 102, 230, 0.9)", // Text shadow on hover
+};
+
+const themeAnimations = {
+  // Border glow animation keyframes
+  borderGlow: `
+  @keyframes borderGlow {
+    0% { border-color: rgba(157, 78, 221, 0.7); }
+    25% { border-color: rgba(138, 43, 226, 0.9); }
+    50% { border-color: rgba(186, 85, 211, 0.8); }
+    75% { border-color: rgba(138, 43, 226, 0.9); }
+    100% { border-color: rgba(157, 78, 221, 0.7); }
+  }`,
+
+  // Text pulse animation keyframes
+  textPulse: `
+  @keyframes textPulse {
+    0% { color: rgba(157, 78, 221, 0.8); text-shadow: 0 0 5px rgba(157, 78, 221, 0.7); }
+    50% { color: rgba(186, 85, 211, 1); text-shadow: 0 0 8px rgba(186, 85, 211, 0.9); }
+    100% { color: rgba(157, 78, 221, 0.8); text-shadow: 0 0 5px rgba(157, 78, 221, 0.7); }
+  }`,
+};
+
+const themeTypography = {
+  fontFamily: "'Arial', sans-serif",
+  defaultSize: "14px",
+  titleSize: "16px",
+  subtitleSize: "14px",
+  smallSize: "12px",
+  tinySize: "11px",
+  brandTextSize: "11px",
+  smallBrandTextSize: "8px",
+};
+
+const themeSpacing = {
+  small: "8px",
+  medium: "15px",
+  large: "20px",
+};
+
+// Style utility functions
+/**
+ * Returns styling for main containers
+ * Uses: themeColors, themeSpacing, themeBorders, themeEffects
+ */
+const getContainerStyle = () => {
+  return {
+    backgroundColor: themeColors.darkBg,
+    padding: themeSpacing.medium,
+    border: `${themeBorders.width} ${themeBorders.style} ${themeColors.primary}`,
+    borderRadius: `${themeBorders.radius}px`,
+    boxShadow: themeEffects.glow,
+    marginTop: themeSpacing.large,
+    marginBottom: themeSpacing.large,
+    position: "relative",
+    overflow: "visible",
+  };
+};
+
+/**
+ * Returns styling for badges
+ * Uses: none
+ */
+const getBadgeStyle = (isSmall = false) => {
+  return {
+    position: "absolute",
+    top: "0",
+    right: "0",
+    padding: isSmall ? "3px 6px 3px 6px" : "4px 8px 4px 8px",
+    background: "transparent",
+    zIndex: "5",
+    boxSizing: "border-box",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    pointerEvents: "none",
+  };
+};
+
+/**
+ * Returns styling for brand text
+ * Uses: themeColors, themeTypography, themeEffects
+ */
+const getBrandTextStyle = (isSmall = false) => {
+  return {
+    display: "block",
+    color: themeColors.primary,
+    fontFamily: themeTypography.fontFamily,
+    fontWeight: "bold",
+    fontSize: isSmall
+      ? themeTypography.smallBrandTextSize
+      : themeTypography.brandTextSize,
+    letterSpacing: "0.5px",
+    textShadow: themeEffects.textShadow,
+    pointerEvents: "none",
+    lineHeight: "1",
+    textAlign: "center",
+    textTransform: "uppercase",
+  };
+};
+
+/**
+ * Returns styling for sections
+ * Uses: themeSpacing, themeColors, themeBorders
+ */
+const getSectionStyle = () => {
+  return {
+    padding: themeSpacing.medium,
+    marginBottom: themeSpacing.medium,
+    backgroundColor: themeColors.mediumBg,
+    borderRadius: `${themeBorders.radius}px`,
+    border: `1px solid ${themeColors.borderColor}`,
+  };
+};
+
+/**
+ * Returns styling for tables
+ * Uses: themeColors, themeTypography
+ */
+const getTableStyle = () => {
+  return {
+    width: "100%",
+    borderCollapse: "collapse",
+    color: themeColors.textColor,
+    fontSize: themeTypography.defaultSize,
+  };
+};
+
+/**
+ * Injects global styles for animations
+ * Uses: themeAnimations
+ */
+const injectGlobalStyles = () => {
+  if (!document.getElementById("revamp-global-styles")) {
+    const styleEl = document.createElement("style");
+    styleEl.id = "revamp-global-styles";
+    styleEl.textContent = `
+      ${themeAnimations.borderGlow}
+      ${themeAnimations.textPulse}
+      
+      /* Apply animations to enhanced buttons */
+      button[revamp-enhanced="true"] {
+        animation: borderGlow 3s infinite ease-in-out;
+      }
+      
+      button[revamp-enhanced="true"] .revamp-badge span,
+      .revamp-brand-text {
+        animation: textPulse 3s infinite ease-in-out;
+      }
+    `;
+    document.head.appendChild(styleEl);
+  }
+};
+
+// Call to inject styles
+injectGlobalStyles();
+
+// =================================================================
+// CONSTANTS AND STATE
+// =================================================================
+
+// Button selectors
+const evButtonSelector = 'button[kind="EvGraph"]';
+const rushAndCashSelector = 'a.nav-item[nav="rnc"]';
+const holdemSelector = 'a.nav-item[nav="holdem"]';
+const omahaSelector = 'a.nav-item[nav="omaha"]';
+
+// List of selectors for buttons that should trigger cleanup
+const cleanupTriggerSelectors = [
+  'button[kind="Hands"]', // Game History
+  'button[kind="HoleCards"]', // Hole Cards
+  'button[kind="Position"]', // Position
+  "a.ng-star-inserted span", // Next X hands (will verify text content)
+];
+
+// Timing constants
+const MAX_ATTEMPTS = 180;
+const MS_BETWEEN_ATTEMPTS = 1000;
+
+// App state variables
+let isProcessing = false; // Flag to prevent multiple simultaneous executions
+let buttonObserver = null;
+let lastUrl = location.href;
+
+// =================================================================
+// EVENT HANDLER FUNCTIONS
+// =================================================================
+
+/**
+ * Handles EV Graph button click event
+ * Uses: pollForChartDataAndCreate
+ */
+function handleEvButtonClick() {
+  console.log("EV Graph button clicked.");
+  pollForChartDataAndCreate();
+}
+
+/**
+ * Handles Next Hands button click event
+ * Uses: cleanupPreviousCharts, pollForChartDataAndCreate
+ */
+function handleNextHandsButtonClick(e) {
+  console.log("Next hands button clicked.");
+
+  // Clean up previous charts
+  cleanupPreviousCharts();
+
+  // Make sure we're not processing anything else
+  if (isProcessing) {
+    console.log("Already processing, aborting current process");
+    isProcessing = false;
+  }
+
+  // Wait for the original chart to update
+  setTimeout(() => {
+    pollForChartDataAndCreate();
+  }, MS_BETWEEN_ATTEMPTS);
+}
+
+/**
+ * Handles cleanup trigger button click events
+ * Uses: cleanupPreviousCharts
+ */
+function handleCleanupTriggerClick(e) {
+  console.log(
+    `Cleanup trigger clicked: ${
+      e.currentTarget.textContent || e.currentTarget.innerText
+    }`
+  );
+  cleanupPreviousCharts();
+}
+
+/**
+ * Handles URL change events
+ * Uses: setupButtonObserver
+ */
+function handleUrlChange(newUrl) {
+  console.log("URL changed to", newUrl);
+
+  // Reset and re-setup our observers
+  if (buttonObserver) {
+    buttonObserver.disconnect();
+  }
+
+  // Wait a bit for the new page to load its components
+  setTimeout(() => {
+    setupButtonObserver();
+  }, MS_BETWEEN_ATTEMPTS);
+}
+
+/**
+ * Handles button hover events
+ * Uses: themeEffects, themeColors
+ */
+function handleButtonHover(e, revampText, isNavButton) {
+  // Check if event target and text element exist
+  if (!e || !e.currentTarget || !e.currentTarget.style) {
+    console.warn("Button element missing in hover handler");
+    return;
+  }
+
+  if (!revampText || !revampText.style) {
+    console.warn("Text element missing in hover handler");
+    return;
+  }
+
+  if (!isNavButton) {
+    // Apply hover effect to regular buttons
+    e.currentTarget.style.boxShadow = themeEffects.hoverGlow;
+    e.currentTarget.style.borderColor = themeColors.primaryLight;
+  }
+
+  // Update text color
+  revampText.style.color = themeColors.primaryLight;
+  revampText.style.textShadow = themeEffects.hoverTextShadow;
+}
+
+/**
+ * Handles button mouseout events
+ * Uses: themeEffects, themeColors
+ */
+function handleButtonMouseout(e, revampText, isNavButton) {
+  // Check if event target and text element exist
+  if (!e || !e.currentTarget || !e.currentTarget.style) {
+    console.warn("Button element missing in mouseout handler");
+    return;
+  }
+
+  if (!revampText || !revampText.style) {
+    console.warn("Text element missing in mouseout handler");
+    return;
+  }
+
+  if (!isNavButton) {
+    // Reset regular buttons to default
+    e.currentTarget.style.boxShadow = themeEffects.glow;
+    e.currentTarget.style.borderColor = themeColors.primary;
+  }
+
+  // Reset text color
+  revampText.style.color = themeColors.primary;
+  revampText.style.textShadow = themeEffects.textShadow;
+
+  // Restart animations
+  e.currentTarget.style.animation = "none";
+  revampText.style.animation = "none";
+
+  setTimeout(() => {
+    // Restore animations - check if currentTarget still exists
+    if (e.currentTarget && e.currentTarget.style) {
+      e.currentTarget.style.animation = isNavButton
+        ? "none"
+        : "borderGlow 3s infinite ease-in-out";
+    }
+
+    // Check if revampText still exists
+    if (revampText && revampText.style) {
+      revampText.style.animation = "textPulse 3s infinite ease-in-out";
+    }
+  }, 10);
+}
+
+// =================================================================
+// ELEMENT DETECTION AND INITIALIZATION
+// =================================================================
+
+// We've moved the button finding and handler attachment logic directly
+// into the findAndAttachButtonHandlers function for a more direct control flow
+
+// =================================================================
+// DOM OBSERVATION FUNCTIONS
+// =================================================================
+
+// The DOM observation approach has been simplified.
+// The new control flow is:
+//
+// initApp() → sets up URL change detection and initial button handlers
+//     ↓
+// setupButtonHandlers() → sets up the DOM mutation observer
+//     ↓
+// findAndAttachButtonHandlers() → directly attaches handlers to all buttons
+//
+// This provides a clear, explicit flow with less indirection
+
+// =================================================================
+// UTILITY FUNCTIONS
+// =================================================================
+
+/**
+ * Function to remove any previously created charts
+ * Uses: none
+ */
+function cleanupPreviousCharts() {
+  console.log("Cleaning up previous charts");
+
+  // Find all elements with our custom class
+  const customElements = document.querySelectorAll(
+    ".poker-craft-rake-adjusted-wrapper"
+  );
+  if (customElements.length > 0) {
+    console.log(
+      `Found ${customElements.length} custom chart elements to remove`
+    );
+    customElements.forEach((el) => el.remove());
+  } else {
+    console.log("No existing charts found to remove");
+  }
+}
+
+/**
+ * Function to check for chart data and create graph
+ * Uses: isProcessing, extractEVGraphData, createRakeAdjustedGraph, findAndAttachButtonHandlers, MAX_ATTEMPTS, MS_BETWEEN_ATTEMPTS
+ */
+function pollForChartDataAndCreate() {
+  if (isProcessing) {
+    console.log("Already processing a chart request, ignoring");
+    return;
+  }
+
+  isProcessing = true;
+  console.log("Polling for chart data readiness...");
+
+  let attempts = 0;
+  const pollInterval = setInterval(() => {
+    attempts++;
+    const evGraphComponent = document.querySelector(
+      "app-game-session-detail-ev-graph"
+    );
+    if (evGraphComponent) {
+      const contextKey = Object.keys(evGraphComponent).find((key) =>
+        key.startsWith("__ngContext__")
+      );
+      if (contextKey) {
+        const chartData = extractEVGraphData();
+        if (chartData && chartData.length > 0) {
+          console.log(
+            "Chart data detected on attempt " +
+              attempts +
+              ". Running extension code."
+          );
+          clearInterval(pollInterval);
+
+          // Create the new chart
+          createRakeAdjustedGraph();
+
+          // After creating the graph, check for buttons that might have appeared
+          setTimeout(findAndAttachButtonHandlers, MS_BETWEEN_ATTEMPTS);
+
+          isProcessing = false;
+          return;
+        } else {
+          console.log(
+            "Angular context found but chart data not ready. Attempt " +
+              attempts
+          );
+        }
+      } else {
+        console.log("Angular context not available yet. Attempt " + attempts);
+      }
+    } else {
+      console.log("EV graph component not found yet. Attempt " + attempts);
+      clearInterval(pollInterval);
+      isProcessing = false;
+      return;
+    }
+    if (attempts >= MAX_ATTEMPTS) {
+      console.error(
+        "Chart data still not available after " + MAX_ATTEMPTS + " attempts."
+      );
+      clearInterval(pollInterval);
+      isProcessing = false;
+    }
+  }, MS_BETWEEN_ATTEMPTS);
+}
+
+/**
+ * Enhance a button with revamp.gg styling
+ * Uses: themeEffects, themeBorders, themeColors, getBadgeStyle, getBrandTextStyle, handleButtonHover, handleButtonMouseout
+ */
+function enhanceButton(button, buttonType) {
+  if (button.hasAttribute("revamp-enhanced")) {
+    return; // Already enhanced
+  }
+
+  // Mark button as enhanced
+  button.setAttribute("revamp-enhanced", "true");
+
+  // Set position for absolute positioning if needed
+  const originalPosition = window.getComputedStyle(button).position;
+  if (originalPosition === "static") {
+    button.style.position = "relative";
+  }
+
+  const isSmallButton = buttonType !== "EV Graph";
+  const isNavButton =
+    buttonType === "Rush & Cash" ||
+    buttonType === "Hold'em" ||
+    buttonType === "PLO";
+
+  // Apply styling to the button
+  button.style.overflow = "visible";
+
+  if (isNavButton) {
+    // For nav buttons, don't show any borders
+    button.style.borderWidth = "0";
+    button.style.boxSizing = "border-box";
+    button.style.borderRadius = "0";
+  } else {
+    // For other buttons (like EV Graph), show full border with glow
+    button.style.boxShadow = themeEffects.glow;
+    button.style.borderWidth = themeBorders.width;
+    button.style.borderStyle = themeBorders.style;
+    button.style.borderColor = themeColors.primary;
+    button.style.boxSizing = "border-box";
+    button.style.borderRadius = `${themeBorders.radius}px`;
+  }
+
+  // Create the badge container
+  const badgeContainer = document.createElement("div");
+  badgeContainer.className = "revamp-badge";
+
+  // Apply badge styles
+  const badgeStyle = getBadgeStyle(isSmallButton);
+  Object.keys(badgeStyle).forEach((key) => {
+    badgeContainer.style[key] = badgeStyle[key];
+  });
+
+  // Add the text
+  const revampText = document.createElement("span");
+  revampText.textContent = "REVAMP.GG";
+
+  // Apply brand text styles
+  const textStyle = getBrandTextStyle(isSmallButton);
+  Object.keys(textStyle).forEach((key) => {
+    revampText.style[key] = textStyle[key];
+  });
+
+  // Enhanced hover effect - only on the button but affects text color
+  button.addEventListener("mouseover", (e) =>
+    handleButtonHover(e, revampText, isNavButton)
+  );
+
+  button.addEventListener("mouseout", (e) =>
+    handleButtonMouseout(e, revampText, isNavButton)
+  );
+
+  // Assemble and append
+  badgeContainer.appendChild(revampText);
+  button.appendChild(badgeContainer);
+
+  console.log(`Enhanced ${buttonType} button with revamp.gg styling`);
+}
+
+// =================================================================
+// MAIN RAKE ADJUSTMENT LOGIC
+// =================================================================
+
+/**
+ * Creates the rake-adjusted graph with all components
+ * Uses: extractPokerSessionData, extractEVGraphData, matchHandsToSessions, calculateRakeAdjustedData, displayComparisonChart
+ */
 function createRakeAdjustedGraph() {
   // Constants for rake calculation - only those that don't depend on big blind size
   const RAKE_PERCENTAGE = 0.05; // 5%
@@ -34,26 +582,6 @@ function createRakeAdjustedGraph() {
 
   console.log("Matching hands to sessions complete");
 
-  // Report on session matching results
-  //   console.log("=== SESSION MATCHING RESULTS ===");
-  //   console.table(sessionStats);
-
-  // Display stake distribution
-  //   console.log("=== STAKE DISTRIBUTION ===");
-  //   console.table(stakeDistribution);
-
-  // Log information about unmatched hands
-  //   if (unmatchedHandsCount > 0) {
-  //     console.warn(
-  //       `Warning: ${unmatchedHandsCount} hands (${(
-  //         (unmatchedHandsCount / originalData.length) *
-  //         100
-  //       ).toFixed(
-  //         1
-  //       )}%) couldn't be matched to any session and were assigned to the highest stakes session`
-  //     );
-  //   }
-
   // Step 4: Calculate rake-adjusted data with dynamic big blind sizes
   const rakeAdjustedData = calculateRakeAdjustedData(
     matchedData,
@@ -74,7 +602,10 @@ function createRakeAdjustedGraph() {
   };
 }
 
-// Extract poker session data from the HTML table
+/**
+ * Extract poker session data from the HTML table
+ * Uses: none
+ */
 function extractPokerSessionData() {
   const sessionRows = document.querySelectorAll("tr.mat-row.cdk-row");
 
@@ -244,7 +775,10 @@ function extractPokerSessionData() {
   };
 }
 
-// Extract EV graph data from the Angular component
+/**
+ * Extract EV graph data from the Angular component
+ * Uses: none
+ */
 function extractEVGraphData() {
   const evGraphComponent = document.querySelector(
     "app-game-session-detail-ev-graph"
@@ -288,7 +822,10 @@ function extractEVGraphData() {
   }
 }
 
-// Match hands to sessions based on timestamps using a network flow algorithm
+/**
+ * Match hands to sessions based on timestamps using a network flow algorithm
+ * Uses: findMaximumBipartiteMatching
+ */
 function matchHandsToSessions(handData, sessions) {
   console.log("Matching hands to sessions using network flow algorithm...");
 
@@ -437,26 +974,6 @@ function matchHandsToSessions(handData, sessions) {
     })
   );
 
-  // Log session assignments for debugging
-  //   console.log("=== SESSION ASSIGNMENTS ===");
-  //   sortedSessions.forEach((session, idx) => {
-  //     console.log(
-  //       `Session ${idx + 1} (${session.startTime}): ${session.assignedHands}/${
-  //         session.hands
-  //       } hands assigned`
-  //     );
-  //   });
-
-  // Verify that all hands are assigned (not necessarily that all sessions are filled)
-  //   console.log("=== SESSION ASSIGNMENTS ===");
-  //   sortedSessions.forEach((session, idx) => {
-  //     console.log(
-  //       `Session ${idx + 1} (${session.startTime}): ${session.assignedHands}/${
-  //         session.hands
-  //       } hands assigned`
-  //     );
-  //   });
-
   // Check if the total hands assigned equals the total hands we have
   const totalHandsAssigned = sortedSessions.reduce(
     (sum, session) => sum + session.assignedHands,
@@ -474,31 +991,6 @@ function matchHandsToSessions(handData, sessions) {
     );
   }
 
-  // Just log a warning for sessions that aren't fully filled
-  //   const incompleteSessions = sortedSessions.filter(
-  //     (session) => session.assignedHands !== session.hands
-  //   );
-  //   if (incompleteSessions.length > 0) {
-  //     console.warn("=== SESSION ASSIGNMENT WARNING ===");
-  //     console.warn(
-  //       `${incompleteSessions.length} sessions do not have the exact number of hands expected:`
-  //     );
-
-  //     incompleteSessions.forEach((session) => {
-  //       const sessionIndex = sortedSessions.indexOf(session);
-  //       console.warn(
-  //         `Session ${sessionIndex + 1} (${session.startTime}): ${
-  //           session.assignedHands
-  //         }/${session.hands} hands assigned`
-  //       );
-  //     });
-
-  //     // Just a warning, not an error
-  //     console.warn(
-  //       "This is normal if you have more session capacity than hands to assign."
-  //     );
-  //   }
-
   return {
     matchedData,
     sessionStats,
@@ -507,7 +999,10 @@ function matchHandsToSessions(handData, sessions) {
   };
 }
 
-// Ford-Fulkerson algorithm implementation for bipartite matching
+/**
+ * Ford-Fulkerson algorithm implementation for bipartite matching
+ * Uses: findAugmentingPath
+ */
 function findMaximumBipartiteMatching(handSessionCompatibility, sessions) {
   console.log("Running Ford-Fulkerson maximum bipartite matching algorithm...");
 
@@ -584,7 +1079,10 @@ function findMaximumBipartiteMatching(handSessionCompatibility, sessions) {
   return handToSession;
 }
 
-// Helper function to find an augmenting path
+/**
+ * Helper function to find an augmenting path for Ford-Fulkerson algorithm
+ * Uses: none
+ */
 function findAugmentingPath(
   handIndex,
   compatibleSessions,
@@ -641,6 +1139,10 @@ function findAugmentingPath(
   return false;
 }
 
+/**
+ * Calculates rake-adjusted data based on original data and rake parameters
+ * Uses: none
+ */
 function calculateRakeAdjustedData(originalData, rakePercentage, rakeCap_BB) {
   const adjustedData = JSON.parse(JSON.stringify(originalData));
   const handResults = [];
@@ -747,7 +1249,10 @@ function calculateRakeAdjustedData(originalData, rakePercentage, rakeCap_BB) {
   return adjustedData;
 }
 
-// Create and display a rake-adjusted chart with winloss and EV
+/**
+ * Create and display a rake-adjusted chart with winloss and EV
+ * Uses: getContainerStyle, getBadgeStyle, getBrandTextStyle, getSectionStyle, getTableStyle
+ */
 function displayComparisonChart(
   originalData,
   rakeAdjustedData,
@@ -808,8 +1313,11 @@ function displayComparisonChart(
       return;
     }
 
-    // Use shared style variables
-    const styles = window.RevampStyles;
+    // Make sure this element exists before trying to access its properties
+    if (!container) {
+      console.error("Chart container was not created properly");
+      return;
+    }
 
     // Create wrapper with border matching enhanced button
     const wrapper = document.createElement("div");
@@ -819,7 +1327,7 @@ function displayComparisonChart(
       targetElement.id || "ev-graph-component";
 
     // Apply container styles
-    const containerStyle = styles.ui.getContainerStyle();
+    const containerStyle = getContainerStyle();
     Object.keys(containerStyle).forEach((key) => {
       wrapper.style[key] = containerStyle[key];
     });
@@ -835,7 +1343,7 @@ function displayComparisonChart(
     const brandText = document.createElement("div");
 
     // Apply brand text styles
-    const brandTextStyle = styles.ui.getBrandTextStyle(false);
+    const brandTextStyle = getBrandTextStyle(false);
     Object.keys(brandTextStyle).forEach((key) => {
       brandText.style[key] = brandTextStyle[key];
     });
@@ -855,10 +1363,10 @@ function displayComparisonChart(
     title.style.textAlign = "center";
     title.style.margin = "0";
     title.style.padding = "8px 0";
-    title.style.color = styles.colors.textColor;
-    title.style.fontFamily = styles.typography.fontFamily;
+    title.style.color = themeColors.textColor;
+    title.style.fontFamily = themeTypography.fontFamily;
     title.style.fontWeight = "600";
-    title.style.fontSize = styles.typography.titleSize;
+    title.style.fontSize = themeTypography.titleSize;
 
     header.appendChild(title);
     header.appendChild(brandText);
@@ -877,39 +1385,39 @@ function displayComparisonChart(
     const percentDifference = (difference / Math.abs(originalFinal)) * 100;
 
     // Define colors for the graph
-    const winlossColor = styles.colors.positiveColor; // Green for winloss
+    const winlossColor = themeColors.positiveColor; // Green for winloss
     const evColor = "#FF9800"; // Orange for EV
 
     // Create the chart with axisY2 on the right-hand side.
     const chart = new CanvasJS.Chart(container.id, {
-      backgroundColor: styles.colors.darkBg,
+      backgroundColor: themeColors.darkBg,
       zoomEnabled: true,
       animationEnabled: true,
       theme: "dark2",
       axisX: {
         // title: "Hand number",
-        titleFontColor: styles.colors.textColor,
-        titleFontSize: parseInt(styles.typography.subtitleSize),
-        labelFontColor: styles.colors.textColor,
-        lineColor: styles.colors.borderColor,
-        gridColor: styles.colors.gridColor,
+        titleFontColor: themeColors.textColor,
+        titleFontSize: parseInt(themeTypography.subtitleSize),
+        labelFontColor: themeColors.textColor,
+        lineColor: themeColors.borderColor,
+        gridColor: themeColors.gridColor,
         tickLength: 0,
       },
       // Define the secondary Y axis which renders on the right.
       axisY2: {
         // title: "Amount ($)",
-        labelFontColor: styles.colors.textColor,
-        lineColor: styles.colors.borderColor,
-        gridColor: styles.colors.gridColor,
+        labelFontColor: themeColors.textColor,
+        lineColor: themeColors.borderColor,
+        gridColor: themeColors.gridColor,
         valueFormatString: "$#,##0.##",
         tickLength: 0,
       },
       toolTip: {
         shared: true,
-        borderColor: styles.colors.borderColor,
-        backgroundColor: styles.colors.mediumBg,
-        fontColor: styles.colors.textColor,
-        cornerRadius: styles.borders.radius,
+        borderColor: themeColors.borderColor,
+        backgroundColor: themeColors.mediumBg,
+        fontColor: themeColors.textColor,
+        cornerRadius: themeBorders.radius,
         contentFormatter: function (e) {
           // Check if we have any entries
           if (e.entries && e.entries.length > 0) {
@@ -934,8 +1442,8 @@ function displayComparisonChart(
       },
       legend: {
         cursor: "pointer",
-        fontColor: styles.colors.textColor,
-        fontSize: parseInt(styles.typography.smallSize), // Reduced font size
+        fontColor: themeColors.textColor,
+        fontSize: parseInt(themeTypography.smallSize), // Reduced font size
         verticalAlign: "bottom",
         horizontalAlign: "center",
         itemclick: function (e) {
@@ -952,10 +1460,10 @@ function displayComparisonChart(
       },
       title: {
         text: "", // Remove the graph title
-        fontColor: styles.colors.textColor,
-        fontSize: parseInt(styles.typography.titleSize),
+        fontColor: themeColors.textColor,
+        fontSize: parseInt(themeTypography.titleSize),
         fontWeight: "normal",
-        fontFamily: styles.typography.fontFamily,
+        fontFamily: themeTypography.fontFamily,
         padding: 10,
       },
       creditText: "",
@@ -979,7 +1487,7 @@ function displayComparisonChart(
           axisYType: "secondary",
           name: "Win/Loss (Rake-Adjusted)",
           showInLegend: true,
-          color: styles.colors.positiveColor,
+          color: themeColors.positiveColor,
           lineThickness: 2,
           markerSize: 0,
           dataPoints: rakeAdjustedData.map((point) => ({
@@ -1115,13 +1623,13 @@ function displayComparisonChart(
 
     // Create summary section with enhanced styling
     const resultsContainer = document.createElement("div");
-    resultsContainer.style.marginTop = styles.spacing.large;
+    resultsContainer.style.marginTop = themeSpacing.large;
 
     // Create rake impact summary cards styled like the image
     const rakeImpactSummary = document.createElement("div");
 
     // Apply section styles
-    const sectionStyle = styles.ui.getSectionStyle();
+    const sectionStyle = getSectionStyle();
     Object.keys(sectionStyle).forEach((key) => {
       rakeImpactSummary.style[key] = sectionStyle[key];
     });
@@ -1129,10 +1637,10 @@ function displayComparisonChart(
 
     const summaryTitle = document.createElement("div");
     summaryTitle.textContent = "Rake Summary";
-    summaryTitle.style.marginBottom = styles.spacing.medium;
-    summaryTitle.style.fontSize = styles.typography.titleSize;
+    summaryTitle.style.marginBottom = themeSpacing.medium;
+    summaryTitle.style.fontSize = themeTypography.titleSize;
     summaryTitle.style.fontWeight = "bold";
-    summaryTitle.style.color = styles.colors.textColor;
+    summaryTitle.style.color = themeColors.textColor;
 
     const summaryCards = document.createElement("div");
     summaryCards.style.display = "flex";
@@ -1145,22 +1653,22 @@ function displayComparisonChart(
       const card = document.createElement("div");
       card.style.flex = "1";
       card.style.minWidth = "150px";
-      card.style.padding = styles.spacing.medium;
-      card.style.backgroundColor = styles.colors.lightBg;
-      card.style.borderRadius = `${styles.borders.radius}px`;
-      card.style.border = `1px solid ${styles.colors.borderColor}`;
+      card.style.padding = themeSpacing.medium;
+      card.style.backgroundColor = themeColors.lightBg;
+      card.style.borderRadius = `${themeBorders.radius}px`;
+      card.style.border = `1px solid ${themeColors.borderColor}`;
 
       const cardTitle = document.createElement("div");
       cardTitle.textContent = title;
-      cardTitle.style.fontSize = styles.typography.smallSize;
-      cardTitle.style.color = styles.colors.mutedTextColor;
-      cardTitle.style.marginBottom = styles.spacing.small;
+      cardTitle.style.fontSize = themeTypography.smallSize;
+      cardTitle.style.color = themeColors.mutedTextColor;
+      cardTitle.style.marginBottom = themeSpacing.small;
 
       const cardValue = document.createElement("div");
       cardValue.innerHTML = value;
       cardValue.style.fontSize = "18px";
       cardValue.style.fontWeight = "bold";
-      cardValue.style.color = styles.colors.textColor;
+      cardValue.style.color = themeColors.textColor;
 
       card.appendChild(cardTitle);
       card.appendChild(cardValue);
@@ -1191,10 +1699,10 @@ function displayComparisonChart(
 
     function createResultsTable(title, stakesData, totals, color) {
       const tableContainer = document.createElement("div");
-      tableContainer.style.marginBottom = styles.spacing.large;
+      tableContainer.style.marginBottom = themeSpacing.large;
 
       // Apply section styles
-      const tableSectionStyle = styles.ui.getSectionStyle();
+      const tableSectionStyle = getSectionStyle();
       Object.keys(tableSectionStyle).forEach((key) => {
         tableContainer.style[key] = tableSectionStyle[key];
       });
@@ -1203,9 +1711,9 @@ function displayComparisonChart(
       const tableTitle = document.createElement("div");
       tableTitle.textContent = title;
       tableTitle.style.textAlign = "center";
-      tableTitle.style.marginBottom = styles.spacing.medium;
+      tableTitle.style.marginBottom = themeSpacing.medium;
       tableTitle.style.color = color;
-      tableTitle.style.fontSize = styles.typography.titleSize;
+      tableTitle.style.fontSize = themeTypography.titleSize;
       tableTitle.style.fontWeight = "bold";
 
       // Add a colored accent bar under the title
@@ -1213,31 +1721,31 @@ function displayComparisonChart(
       accentBar.style.height = "3px";
       accentBar.style.width = "60px";
       accentBar.style.backgroundColor = color;
-      accentBar.style.margin = `0 auto ${styles.spacing.medium} auto`;
-      accentBar.style.borderRadius = `${styles.borders.radius}px`;
+      accentBar.style.margin = `0 auto ${themeSpacing.medium} auto`;
+      accentBar.style.borderRadius = `${themeBorders.radius}px`;
 
       tableContainer.appendChild(tableTitle);
       tableContainer.appendChild(accentBar);
 
       const table = document.createElement("table");
       // Apply table styles
-      const tableStyle = styles.ui.getTableStyle();
+      const tableStyle = getTableStyle();
       Object.keys(tableStyle).forEach((key) => {
         table.style[key] = tableStyle[key];
       });
 
       // Table header styling
-      const headerBg = styles.colors.lightBg;
+      const headerBg = themeColors.lightBg;
       const cellPadding = "10px";
 
       let tableHTML = `
         <thead>
           <tr style="background-color: ${headerBg};">
-            <th style="padding: ${cellPadding}; text-align: left; border-bottom: 1px solid ${styles.colors.borderColor};">Stakes</th>
-            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${styles.colors.borderColor};">Hands</th>
-            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${styles.colors.borderColor};">Win/Loss</th>
-            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${styles.colors.borderColor};">BB Win/Loss</th>
-            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${styles.colors.borderColor};">BB/100</th>
+            <th style="padding: ${cellPadding}; text-align: left; border-bottom: 1px solid ${themeColors.borderColor};">Stakes</th>
+            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${themeColors.borderColor};">Hands</th>
+            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${themeColors.borderColor};">Win/Loss</th>
+            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${themeColors.borderColor};">BB Win/Loss</th>
+            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${themeColors.borderColor};">BB/100</th>
           </tr>
         </thead>
         <tbody>
@@ -1252,29 +1760,29 @@ function displayComparisonChart(
 
         const winLossColor =
           stake.winloss >= 0
-            ? styles.colors.positiveColor
-            : styles.colors.negativeColor;
+            ? themeColors.positiveColor
+            : themeColors.negativeColor;
         const bbPerColor =
           stake.bbPer100 >= 0
-            ? styles.colors.positiveColor
-            : styles.colors.negativeColor;
+            ? themeColors.positiveColor
+            : themeColors.negativeColor;
 
         tableHTML += `
           <tr>
             <td style="padding: ${cellPadding}; text-align: left; border-bottom: 1px solid ${
-          styles.colors.borderColor
+          themeColors.borderColor
         };">${stake.stakes}</td>
             <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${
-          styles.colors.borderColor
+          themeColors.borderColor
         };">${stake.hands}</td>
             <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${
-          styles.colors.borderColor
+          themeColors.borderColor
         }; color: ${winLossColor};">$${stake.winloss.toFixed(2)}</td>
             <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${
-          styles.colors.borderColor
+          themeColors.borderColor
         }; color: ${winLossColor};">${stake.bbResult.toFixed(2)}</td>
             <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${
-          styles.colors.borderColor
+          themeColors.borderColor
         }; color: ${bbPerColor};">${stake.bbPer100.toFixed(2)}</td>
           </tr>
         `;
@@ -1283,29 +1791,29 @@ function displayComparisonChart(
       // Total row
       const totalWinLossColor =
         totals.winloss >= 0
-          ? styles.colors.positiveColor
-          : styles.colors.negativeColor;
+          ? themeColors.positiveColor
+          : themeColors.negativeColor;
       const totalBbPerColor =
         totals.bbPer100 >= 0
-          ? styles.colors.positiveColor
-          : styles.colors.negativeColor;
+          ? themeColors.positiveColor
+          : themeColors.negativeColor;
 
       tableHTML += `
         <tr style="font-weight: bold; background-color: ${headerBg};">
           <td style="padding: ${cellPadding}; text-align: left; border-top: 1px solid ${
-        styles.colors.borderColor
+        themeColors.borderColor
       };">TOTAL</td>
           <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${
-        styles.colors.borderColor
+        themeColors.borderColor
       };">${totals.hands}</td>
           <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${
-        styles.colors.borderColor
+        themeColors.borderColor
       }; color: ${totalWinLossColor};">$${totals.winloss.toFixed(2)}</td>
           <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${
-        styles.colors.borderColor
+        themeColors.borderColor
       }; color: ${totalWinLossColor};">${totals.bbResult.toFixed(2)}</td>
           <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${
-        styles.colors.borderColor
+        themeColors.borderColor
       }; color: ${totalBbPerColor};">${totals.bbPer100.toFixed(2)}</td>
         </tr>
         </tbody>
@@ -1349,14 +1857,14 @@ function displayComparisonChart(
 
     // Create footer note
     const notesContainer = document.createElement("div");
-    notesContainer.style.marginTop = styles.spacing.medium;
+    notesContainer.style.marginTop = themeSpacing.medium;
     notesContainer.style.padding = "12px";
-    notesContainer.style.fontSize = styles.typography.smallSize;
-    notesContainer.style.color = styles.colors.mutedTextColor;
+    notesContainer.style.fontSize = themeTypography.smallSize;
+    notesContainer.style.color = themeColors.mutedTextColor;
     notesContainer.style.textAlign = "center";
 
     // Apply section styles
-    const noteSectionStyle = styles.ui.getSectionStyle();
+    const noteSectionStyle = getSectionStyle();
     Object.keys(noteSectionStyle).forEach((key) => {
       notesContainer.style[key] = noteSectionStyle[key];
     });
@@ -1365,7 +1873,7 @@ function displayComparisonChart(
       <div style="margin-bottom: 5px;">Note: Rake calculation assumes 5% rake with a cap of 3 big blinds per pot.</div>
       <div>Each hand is matched to its session based on timestamp, using the correct big blind size for that session.</div>
       <div>All-in EV is adjusted based on the proportion of the pot that would be yours had there been no rake.</div>
-      <div style="margin-top: 10px; font-weight: bold; color: ${styles.colors.primary}; text-transform: uppercase; letter-spacing: 1px;" class="revamp-brand-text">Powered by REVAMP.GG</div>
+      <div style="margin-top: 10px; font-weight: bold; color: ${themeColors.primary}; text-transform: uppercase; letter-spacing: 1px;" class="revamp-brand-text">Powered by REVAMP.GG</div>
     `;
 
     wrapper.appendChild(notesContainer);
@@ -1378,434 +1886,149 @@ function displayComparisonChart(
   });
 }
 
-// Function to observe EV Graph button and launch our code when ready
-function observeEvGraphButtonAndData() {
-  const evButtonSelector = 'button[kind="EvGraph"]';
-  const rushAndCashSelector = 'a.nav-item[nav="rnc"]';
-  const holdemSelector = 'a.nav-item[nav="holdem"]';
-  const omahaSelector = 'a.nav-item[nav="omaha"]';
+// =================================================================
+// APP INITIALIZATION
+// =================================================================
 
-  // List of selectors for buttons that should trigger cleanup
-  const cleanupTriggerSelectors = [
-    'button[kind="Hands"]', // Game History
-    'button[kind="HoleCards"]', // Hole Cards
-    'button[kind="Position"]', // Position
-    "a.ng-star-inserted span", // Next X hands (will verify text content)
-  ];
+/**
+ * Initialize the application with explicit control flow for all user interactions
+ */
+function initApp() {
+  console.log("Initializing application with explicit control flow...");
 
-  let isProcessing = false; // Flag to prevent multiple simultaneous executions
-  let buttonObserver = null;
+  // --- SETUP URL CHANGE DETECTION ---
+  // Create an observer to detect Angular route changes
+  new MutationObserver(() => {
+    // If URL has changed
+    if (location.href !== lastUrl) {
+      console.log("URL changed from", lastUrl, "to", location.href);
+      lastUrl = location.href;
 
-  // Increased timeouts and renamed for clarity
-  const maxAttempts = 180;
-  const msBetweenAttempts = 1000;
+      // Reset any existing observers
+      if (buttonObserver) {
+        buttonObserver.disconnect();
+      }
 
-  // Function to remove any previously created charts
-  function cleanupPreviousCharts() {
-    console.log("Cleaning up previous charts");
+      // Re-establish all button handlers after a brief delay to let DOM load
+      setTimeout(setupButtonHandlers, MS_BETWEEN_ATTEMPTS);
+    }
+  }).observe(document, { subtree: true, childList: true });
 
-    // Find all elements with our custom class
-    const customElements = document.querySelectorAll(
-      ".poker-craft-rake-adjusted-wrapper"
-    );
-    if (customElements.length > 0) {
-      console.log(
-        `Found ${customElements.length} custom chart elements to remove`
-      );
-      customElements.forEach((el) => el.remove());
-    } else {
-      console.log("No existing charts found to remove");
+  // --- SETUP BUTTON HANDLERS ---
+  // Set up initial button handlers and observers
+  setupButtonHandlers();
+
+  console.log("Application initialized successfully!");
+}
+
+/**
+ * Set up observers to find and attach handlers to all buttons we care about
+ */
+function setupButtonHandlers() {
+  console.log("Setting up button handlers...");
+
+  // If there's an existing observer, disconnect it
+  if (buttonObserver) {
+    buttonObserver.disconnect();
+  }
+
+  // Create a new mutation observer to detect DOM changes
+  buttonObserver = new MutationObserver(() => {
+    // When DOM changes, check for all our target buttons
+    findAndAttachButtonHandlers();
+  });
+
+  // Start observing the DOM for changes
+  buttonObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: false,
+    characterData: false,
+  });
+
+  // Also run immediately to detect buttons that already exist
+  findAndAttachButtonHandlers();
+}
+
+/**
+ * Core function that finds all buttons and attaches appropriate handlers
+ * This is the central control point for all button interactions
+ */
+function findAndAttachButtonHandlers() {
+  console.log("Finding and attaching button handlers");
+  // 1. EV Graph Button - Primary interaction point for creating rake graphs
+  const evButton = document.querySelector(evButtonSelector);
+  if (evButton && !evButton.hasAttribute("poker-craft-ext-initialized")) {
+    console.log("✓ Found EV Graph button - attaching handler");
+    // Mark as initialized
+    evButton.setAttribute("poker-craft-ext-initialized", "true");
+    // Add event listener
+    evButton.addEventListener("click", handleEvButtonClick);
+    // Apply styling
+    enhanceButton(evButton, "EV Graph");
+  }
+
+  // 2. Rush & Cash Navigation Button - Apply styling only
+  const rushAndCashButton = document.querySelector(rushAndCashSelector);
+  if (rushAndCashButton && !rushAndCashButton.hasAttribute("revamp-enhanced")) {
+    console.log("✓ Found Rush & Cash button - applying styling");
+    enhanceButton(rushAndCashButton, "Rush & Cash");
+  }
+
+  // 3. Hold'em Navigation Button - Apply styling only
+  const holdemButton = document.querySelector(holdemSelector);
+  if (holdemButton && !holdemButton.hasAttribute("revamp-enhanced")) {
+    console.log("✓ Found Hold'em button - applying styling");
+    enhanceButton(holdemButton, "Hold'em");
+  }
+
+  // 4. PLO Navigation Button - Apply styling only
+  const omahaButton = document.querySelector(omahaSelector);
+  if (omahaButton && !omahaButton.hasAttribute("revamp-enhanced")) {
+    console.log("✓ Found PLO button - applying styling");
+    enhanceButton(omahaButton, "PLO");
+  }
+
+  // 5. Next Hands Button - Triggers cleanup and recreates charts
+  const allLinks = document.querySelectorAll("a");
+  for (const link of allLinks) {
+    const span = link.querySelector("span");
+    if (
+      span &&
+      span.textContent.includes("Next") &&
+      !span.hasAttribute("poker-craft-ext-initialized")
+    ) {
+      console.log("✓ Found Next hands button:", span.textContent);
+      span.setAttribute("poker-craft-ext-initialized", "true");
+      link.addEventListener("click", handleNextHandsButtonClick);
     }
   }
 
-  // Function to check for chart data and create graph
-  function pollForChartDataAndCreate() {
-    if (isProcessing) {
-      console.log("Already processing a chart request, ignoring");
-      return;
-    }
-
-    // Remove cleanup call from here - we only want to clean up when specific buttons are clicked
-    isProcessing = true;
-    console.log("Polling for chart data readiness...");
-
-    let attempts = 0;
-    const pollInterval = setInterval(() => {
-      attempts++;
-      const evGraphComponent = document.querySelector(
-        "app-game-session-detail-ev-graph"
-      );
-      if (evGraphComponent) {
-        const contextKey = Object.keys(evGraphComponent).find((key) =>
-          key.startsWith("__ngContext__")
-        );
-        if (contextKey) {
-          const chartData = extractEVGraphData();
-          if (chartData && chartData.length > 0) {
-            console.log(
-              "Chart data detected on attempt " +
-                attempts +
-                ". Running extension code."
-            );
-            clearInterval(pollInterval);
-
-            // Create the new chart
-            createRakeAdjustedGraph();
-
-            // After creating the graph, look for the "Next X hands" button
-            setTimeout(checkForNextHandsButton, msBetweenAttempts);
-
-            isProcessing = false;
-            return;
-          } else {
-            console.log(
-              "Angular context found but chart data not ready. Attempt " +
-                attempts
-            );
-          }
-        } else {
-          console.log("Angular context not available yet. Attempt " + attempts);
-        }
-      } else {
-        console.log("EV graph component not found yet. Attempt " + attempts);
-        clearInterval(pollInterval);
-        isProcessing = false;
+  // 6. Cleanup Trigger Buttons - Various buttons that should trigger cleanup
+  cleanupTriggerSelectors.forEach((selector) => {
+    const elements = document.querySelectorAll(selector);
+    elements.forEach((element) => {
+      // Skip non-Next elements for span selector
+      if (
+        selector === "a.ng-star-inserted span" &&
+        !element.textContent.includes("Next")
+      ) {
         return;
       }
-      if (attempts >= maxAttempts) {
-        console.error(
-          "Chart data still not available after " + maxAttempts + " attempts."
+
+      // Check if already initialized
+      if (!element.hasAttribute("cleanup-listener-attached")) {
+        console.log(
+          `✓ Found cleanup trigger: ${
+            element.textContent || element.innerText || "element"
+          }`
         );
-        clearInterval(pollInterval);
-        isProcessing = false;
+        element.setAttribute("cleanup-listener-attached", "true");
+        element.addEventListener("click", handleCleanupTriggerClick);
       }
-    }, msBetweenAttempts);
-  }
-
-  // Function to handle EV button clicks
-  function handleEvButtonClick() {
-    console.log("EV Graph button clicked.");
-    pollForChartDataAndCreate();
-  }
-
-  // Function to handle Next Hands button clicks
-  function handleNextHandsButtonClick(e) {
-    console.log("Next hands button clicked.");
-
-    // Call cleanup here since this is one of the specified buttons
-    cleanupPreviousCharts();
-
-    // Make extra sure we're not processing anything else
-    if (isProcessing) {
-      console.log("Already processing, aborting current process");
-      isProcessing = false;
-    }
-
-    // Wait for the original chart to update
-    setTimeout(() => {
-      pollForChartDataAndCreate();
-    }, msBetweenAttempts);
-  }
-
-  // Function to detect and add listener to the Next X hands button
-  function checkForNextHandsButton() {
-    // We need a special selector since the standard :contains selector isn't natively supported
-    // Find all <a> elements with spans containing "Next"
-    const allLinks = document.querySelectorAll("a");
-
-    for (const link of allLinks) {
-      const span = link.querySelector("span");
-      if (
-        span &&
-        span.textContent.includes("Next") &&
-        !span.hasAttribute("poker-craft-ext-initialized")
-      ) {
-        console.log("Next hands button found:", span.textContent);
-        span.setAttribute("poker-craft-ext-initialized", "true");
-        link.addEventListener("click", handleNextHandsButtonClick);
-      }
-    }
-  }
-
-  // Function to add cleanup event listener to specific buttons
-  function attachCleanupListeners() {
-    cleanupTriggerSelectors.forEach((selector) => {
-      const elements = document.querySelectorAll(selector);
-      elements.forEach((element) => {
-        // For the "Next X hands" button, we need to check the text content
-        if (
-          selector === "a.ng-star-inserted span" &&
-          !element.textContent.includes("Next")
-        ) {
-          return;
-        }
-
-        // Check if we've already attached listener to this element
-        if (!element.hasAttribute("cleanup-listener-attached")) {
-          element.setAttribute("cleanup-listener-attached", "true");
-
-          // Attach the click event listener
-          element.addEventListener("click", () => {
-            console.log(
-              `Cleanup trigger clicked: ${
-                element.textContent || element.innerText
-              }`
-            );
-            cleanupPreviousCharts();
-          });
-
-          console.log(
-            `Attached cleanup listener to: ${
-              element.textContent || element.innerText || selector
-            }`
-          );
-        }
-      });
     });
-  }
-
-  // Watch for EV Graph button and cleanup trigger buttons using MutationObserver
-  function setupButtonObserver() {
-    if (buttonObserver) {
-      buttonObserver.disconnect();
-    }
-
-    buttonObserver = new MutationObserver((mutations) => {
-      // Check for EV Graph button
-      const evButton = document.querySelector(evButtonSelector);
-      if (evButton && !evButton.hasAttribute("poker-craft-ext-initialized")) {
-        console.log("EV Graph button found. Attaching click listener.");
-        evButton.setAttribute("poker-craft-ext-initialized", "true");
-        evButton.addEventListener("click", handleEvButtonClick);
-
-        // Enhance the button with revamp.gg styling
-        enhanceButton(evButton, "EV Graph");
-      }
-
-      // Check for Rush & Cash button
-      const rushAndCashButton = document.querySelector(rushAndCashSelector);
-      if (
-        rushAndCashButton &&
-        !rushAndCashButton.hasAttribute("revamp-enhanced")
-      ) {
-        console.log("Rush & Cash button found. Applying styling.");
-        enhanceButton(rushAndCashButton, "Rush & Cash");
-      }
-
-      // Check for Hold'em button
-      const holdemButton = document.querySelector(holdemSelector);
-      if (holdemButton && !holdemButton.hasAttribute("revamp-enhanced")) {
-        console.log("Hold'em button found. Applying styling.");
-        enhanceButton(holdemButton, "Hold'em");
-      }
-
-      // Check for PLO button
-      const omahaButton = document.querySelector(omahaSelector);
-      if (omahaButton && !omahaButton.hasAttribute("revamp-enhanced")) {
-        console.log("PLO button found. Applying styling.");
-        enhanceButton(omahaButton, "PLO");
-      }
-
-      // Check for buttons that should trigger cleanup
-      attachCleanupListeners();
-
-      // Check for Next Hands button
-      checkForNextHandsButton();
-    });
-
-    // Start observing the document with the configured parameters
-    buttonObserver.observe(document.body, {
-      childList: true,
-      subtree: true,
-      attributes: false,
-      characterData: false,
-    });
-
-    // Also check immediately in case the buttons already exist
-    const evButton = document.querySelector(evButtonSelector);
-    if (evButton && !evButton.hasAttribute("poker-craft-ext-initialized")) {
-      console.log(
-        "EV Graph button found immediately. Attaching click listener."
-      );
-      evButton.setAttribute("poker-craft-ext-initialized", "true");
-      evButton.addEventListener("click", handleEvButtonClick);
-
-      // Enhance the button with revamp.gg styling
-      enhanceButton(evButton, "EV Graph");
-    }
-
-    // Check for Rush & Cash button immediately
-    const rushAndCashButton = document.querySelector(rushAndCashSelector);
-    if (
-      rushAndCashButton &&
-      !rushAndCashButton.hasAttribute("revamp-enhanced")
-    ) {
-      console.log("Rush & Cash button found immediately. Applying styling.");
-      enhanceButton(rushAndCashButton, "Rush & Cash");
-    }
-
-    // Check for Hold'em button immediately
-    const holdemButton = document.querySelector(holdemSelector);
-    if (holdemButton && !holdemButton.hasAttribute("revamp-enhanced")) {
-      console.log("Hold'em button found immediately. Applying styling.");
-      enhanceButton(holdemButton, "Hold'em");
-    }
-
-    // Check for PLO button immediately
-    const omahaButton = document.querySelector(omahaSelector);
-    if (omahaButton && !omahaButton.hasAttribute("revamp-enhanced")) {
-      console.log("PLO button found immediately. Applying styling.");
-      enhanceButton(omahaButton, "PLO");
-    }
-
-    // Check for cleanup trigger buttons immediately
-    attachCleanupListeners();
-
-    checkForNextHandsButton();
-  }
-
-  // Watch for route changes in Angular application
-  function watchForRouteChanges() {
-    // We'll watch the URL for changes
-    let lastUrl = location.href;
-
-    // Create an observer to check when the URL changes
-    new MutationObserver(() => {
-      // Check if URL changed
-      if (location.href !== lastUrl) {
-        lastUrl = location.href;
-        console.log("URL changed to", lastUrl);
-
-        // Reset and re-setup our observers
-        if (buttonObserver) {
-          buttonObserver.disconnect();
-        }
-
-        // Wait a bit for the new page to load its components
-        setTimeout(() => {
-          setupButtonObserver();
-        }, msBetweenAttempts);
-      }
-    }).observe(document, { subtree: true, childList: true });
-  }
-
-  // Start the observers
-  setupButtonObserver();
-  watchForRouteChanges();
+  });
 }
 
-// ---
-// Enhance a button with revamp.gg styling
-// ---
-function enhanceButton(button, buttonType) {
-  if (button.hasAttribute("revamp-enhanced")) {
-    return; // Already enhanced
-  }
-
-  // Mark button as enhanced
-  button.setAttribute("revamp-enhanced", "true");
-
-  // Set position for absolute positioning if needed
-  const originalPosition = window.getComputedStyle(button).position;
-  if (originalPosition === "static") {
-    button.style.position = "relative";
-  }
-
-  // Use our shared style variables
-  const styles = window.RevampStyles;
-  const isSmallButton = buttonType !== "EV Graph";
-  const isNavButton =
-    buttonType === "Rush & Cash" ||
-    buttonType === "Hold'em" ||
-    buttonType === "PLO";
-
-  // Apply styling to the button
-  button.style.overflow = "visible";
-
-  if (isNavButton) {
-    // For nav buttons, don't show any borders
-    button.style.borderWidth = "0";
-    button.style.boxSizing = "border-box";
-    button.style.borderRadius = "0";
-  } else {
-    // For other buttons (like EV Graph), show full border with glow
-    button.style.boxShadow = styles.effects.glow;
-    button.style.borderWidth = styles.borders.width;
-    button.style.borderStyle = styles.borders.style;
-    button.style.borderColor = styles.colors.primary;
-    button.style.boxSizing = "border-box";
-    button.style.borderRadius = `${styles.borders.radius}px`;
-  }
-
-  // Create the badge container
-  const badgeContainer = document.createElement("div");
-  badgeContainer.className = "revamp-badge";
-
-  // Apply badge styles
-  const badgeStyle = styles.ui.getBadgeStyle(isSmallButton);
-  Object.keys(badgeStyle).forEach((key) => {
-    badgeContainer.style[key] = badgeStyle[key];
-  });
-
-  // Keep badge in top right for all buttons
-
-  // Add the text
-  const revampText = document.createElement("span");
-  revampText.textContent = "REVAMP.GG";
-
-  // Apply brand text styles
-  const textStyle = styles.ui.getBrandTextStyle(isSmallButton);
-  Object.keys(textStyle).forEach((key) => {
-    revampText.style[key] = textStyle[key];
-  });
-
-  // Enhanced hover effect - only on the button but affects text color
-  button.addEventListener("mouseover", function () {
-    if (isNavButton) {
-      // No border hover effect for nav buttons
-    } else {
-      // Apply hover effect to regular buttons
-      button.style.boxShadow = styles.effects.hoverGlow;
-      button.style.borderColor = styles.colors.primaryLight;
-    }
-
-    // Update text color
-    revampText.style.color = styles.colors.primaryLight;
-    revampText.style.textShadow = styles.effects.hoverTextShadow;
-  });
-
-  button.addEventListener("mouseout", function () {
-    if (isNavButton) {
-      // No border reset for nav buttons
-    } else {
-      // Reset regular buttons to default
-      button.style.boxShadow = styles.effects.glow;
-      button.style.borderColor = styles.colors.primary;
-    }
-
-    // Reset text color
-    revampText.style.color = styles.colors.primary;
-    revampText.style.textShadow = styles.effects.textShadow;
-
-    // Restart animations
-    button.style.animation = "none";
-    revampText.style.animation = "none";
-
-    setTimeout(() => {
-      // Restore animations
-      button.style.animation = isNavButton
-        ? "none"
-        : "borderGlow 3s infinite ease-in-out";
-      revampText.style.animation = "textPulse 3s infinite ease-in-out";
-    }, 10);
-  });
-
-  // Assemble and append
-  badgeContainer.appendChild(revampText);
-  button.appendChild(badgeContainer);
-
-  console.log(`Enhanced ${buttonType} button with revamp.gg styling`);
-}
-
-// Start the observer for the EV graph button
-observeEvGraphButtonAndData();
+// Initialize the application
+initApp();
