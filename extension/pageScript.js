@@ -144,9 +144,6 @@ function pollForChartDataAndCreate() {
           // Create the new chart
           createRakeAdjustedGraph();
 
-          // After creating the graph, ensure buttons are enhanced
-          setTimeout(enhanceButtons, MS_BETWEEN_ATTEMPTS);
-
           isProcessing = false;
           return;
         } else {
@@ -1562,8 +1559,6 @@ function initApp() {
 
   // Add centralized click event listener with inline handler for event delegation
   document.addEventListener("click", (event) => {
-    // Enhance buttons on click
-    enhanceButtons();
     // Find the actual target or its closest matching parent
     const target = event.target;
 
@@ -1604,8 +1599,17 @@ function initApp() {
     }
   });
 
-  // Initial button enhancement
-  enhanceButtons();
+  // Set up a MutationObserver to call enhanceButtons() on any DOM mutation.
+  const observer = new MutationObserver(() => {
+    console.log("DOM mutation detected. Calling enhanceButtons()");
+    enhanceButtons();
+  });
+
+  // Start observing the document body for child node changes in the entire subtree.
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
 }
 
 // Initialize the application
