@@ -1,1 +1,3 @@
-when clicking next x hands I think if fully redoes everything including the mapping from hands to sessions. we should obv retain the mappings and only have to map the new hands to improve performance.
+1. When clicking next x hands I think if fully redoes everything including the mapping from hands to sessions. we should obv retain the mappings and only have to map the new hands to improve performance.
+
+2. We seem to not calculate enough rake. Needs to be looked into a more accurate calculation method.

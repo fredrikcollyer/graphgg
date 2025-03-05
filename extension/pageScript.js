@@ -1415,12 +1415,21 @@ function displayComparisonChart(
   });
 }
 
-// Observe the EV Graph button and launch our code when ready
+// Function to observe EV Graph button and launch our code when ready
 function observeEvGraphButtonAndData() {
   const evButtonSelector = 'button[kind="EvGraph"]';
   const rushAndCashSelector = 'a.nav-item[nav="rnc"]';
   const holdemSelector = 'a.nav-item[nav="holdem"]';
   const omahaSelector = 'a.nav-item[nav="omaha"]';
+
+  // List of selectors for buttons that should trigger cleanup
+  const cleanupTriggerSelectors = [
+    'button[kind="Hands"]', // Game History
+    'button[kind="HoleCards"]', // Hole Cards
+    'button[kind="Position"]', // Position
+    "a.ng-star-inserted span", // Next X hands (will verify text content)
+  ];
+
   let isProcessing = false; // Flag to prevent multiple simultaneous executions
   let buttonObserver = null;
 
@@ -1453,9 +1462,7 @@ function observeEvGraphButtonAndData() {
       return;
     }
 
-    // Cleanup any previous charts
-    cleanupPreviousCharts();
-
+    // Remove cleanup call from here - we only want to clean up when specific buttons are clicked
     isProcessing = true;
     console.log("Polling for chart data readiness...");
 
@@ -1479,7 +1486,7 @@ function observeEvGraphButtonAndData() {
             );
             clearInterval(pollInterval);
 
-            // Create the new chart first (old charts still visible)
+            // Create the new chart
             createRakeAdjustedGraph();
 
             // After creating the graph, look for the "Next X hands" button
@@ -1498,10 +1505,6 @@ function observeEvGraphButtonAndData() {
         }
       } else {
         console.log("EV graph component not found yet. Attempt " + attempts);
-
-        // If the EV graph component doesn't exist, make sure we clean up any existing charts
-        cleanupPreviousCharts();
-
         clearInterval(pollInterval);
         isProcessing = false;
         return;
@@ -1525,6 +1528,10 @@ function observeEvGraphButtonAndData() {
   // Function to handle Next Hands button clicks
   function handleNextHandsButtonClick(e) {
     console.log("Next hands button clicked.");
+
+    // Call cleanup here since this is one of the specified buttons
+    cleanupPreviousCharts();
+
     // Make extra sure we're not processing anything else
     if (isProcessing) {
       console.log("Already processing, aborting current process");
@@ -1553,13 +1560,48 @@ function observeEvGraphButtonAndData() {
         console.log("Next hands button found:", span.textContent);
         span.setAttribute("poker-craft-ext-initialized", "true");
         link.addEventListener("click", handleNextHandsButtonClick);
-
-        // No styling for Next Hands button
       }
     }
   }
 
-  // Watch for EV Graph button and Next Hands button using MutationObserver
+  // Function to add cleanup event listener to specific buttons
+  function attachCleanupListeners() {
+    cleanupTriggerSelectors.forEach((selector) => {
+      const elements = document.querySelectorAll(selector);
+      elements.forEach((element) => {
+        // For the "Next X hands" button, we need to check the text content
+        if (
+          selector === "a.ng-star-inserted span" &&
+          !element.textContent.includes("Next")
+        ) {
+          return;
+        }
+
+        // Check if we've already attached listener to this element
+        if (!element.hasAttribute("cleanup-listener-attached")) {
+          element.setAttribute("cleanup-listener-attached", "true");
+
+          // Attach the click event listener
+          element.addEventListener("click", () => {
+            console.log(
+              `Cleanup trigger clicked: ${
+                element.textContent || element.innerText
+              }`
+            );
+            cleanupPreviousCharts();
+          });
+
+          console.log(
+            `Attached cleanup listener to: ${
+              element.textContent || element.innerText || selector
+            }`
+          );
+        }
+      });
+    });
+  }
+
+  // Watch for EV Graph button and cleanup trigger buttons using MutationObserver
   function setupButtonObserver() {
     if (buttonObserver) {
       buttonObserver.disconnect();
@@ -1601,19 +1643,8 @@ function observeEvGraphButtonAndData() {
         enhanceButton(omahaButton, "PLO");
       }
 
-      // Check for other primary navigation buttons that should trigger cleanup
-      const otherButtons = document.querySelectorAll(
-        'button:not([kind="EvGraph"]).mat-button'
-      );
-      otherButtons.forEach((button) => {
-        if (!button.hasAttribute("poker-craft-ext-cleanup")) {
-          button.setAttribute("poker-craft-ext-cleanup", "true");
-          button.addEventListener("click", () => {
-            console.log("Other navigation button clicked, cleaning up charts");
-            cleanupPreviousCharts();
-          });
-        }
-      });
+      // Check for buttons that should trigger cleanup
+      attachCleanupListeners();
 
       // Check for Next Hands button
       checkForNextHandsButton();
@@ -1664,10 +1695,13 @@ function observeEvGraphButtonAndData() {
       enhanceButton(omahaButton, "PLO");
     }
 
+    // Check for cleanup trigger buttons immediately
+    attachCleanupListeners();
+
     checkForNextHandsButton();
   }
 
-  // Watch for route changes and other UI changes in Angular application
+  // Watch for route changes in Angular application
   function watchForRouteChanges() {
     // We'll watch the URL for changes
     let lastUrl = location.href;
@@ -1679,9 +1713,6 @@ function observeEvGraphButtonAndData() {
         lastUrl = location.href;
         console.log("URL changed to", lastUrl);
 
-        // Clean up our UI elements since we navigated away
-        cleanupPreviousCharts();
-
         // Reset and re-setup our observers
         if (buttonObserver) {
           buttonObserver.disconnect();
@@ -1691,15 +1722,6 @@ function observeEvGraphButtonAndData() {
         setTimeout(() => {
           setupButtonObserver();
         }, msBetweenAttempts);
-      }
-
-      // Check if the original EV graph was removed (by other navigation)
-      const evGraphComponent = document.querySelector(
-        "app-game-session-detail-ev-graph"
-      );
-      if (!evGraphComponent) {
-        // If the original graph is gone, remove our UI too
-        cleanupPreviousCharts();
       }
     }).observe(document, { subtree: true, childList: true });
   }
