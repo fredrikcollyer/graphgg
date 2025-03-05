@@ -32,40 +32,27 @@ function createRakeAdjustedGraph() {
   const { matchedData, sessionStats, stakeDistribution, unmatchedHandsCount } =
     matchHandsToSessions(originalData, sessionData.sessions);
 
+  console.log("Matching hands to sessions complete");
+
   // Report on session matching results
-  console.log("=== SESSION MATCHING RESULTS ===");
-  console.table(sessionStats);
+  //   console.log("=== SESSION MATCHING RESULTS ===");
+  //   console.table(sessionStats);
 
   // Display stake distribution
   //   console.log("=== STAKE DISTRIBUTION ===");
   //   console.table(stakeDistribution);
 
   // Log information about unmatched hands
-  if (unmatchedHandsCount > 0 && debugIsTrue) {
-    console.warn(
-      `Warning: ${unmatchedHandsCount} hands (${(
-        (unmatchedHandsCount / originalData.length) *
-        100
-      ).toFixed(
-        1
-      )}%) couldn't be matched to any session and were assigned to the highest stakes session`
-    );
-  }
-
-  sessionStats.forEach((stat) => {
-    const discrepancy = Math.abs(stat.matchedHands - stat.expectedHands);
-    const discrepancyPercent = (discrepancy / stat.expectedHands) * 100;
-
-    if (discrepancyPercent > 5 && discrepancy > 3 && debugIsTrue) {
-      console.warn(
-        `Warning: Session starting at ${stat.startTime} has ${
-          stat.matchedHands
-        } matched hands but expected ${
-          stat.expectedHands
-        } (${discrepancyPercent.toFixed(1)}% difference)`
-      );
-    }
-  });
+  //   if (unmatchedHandsCount > 0) {
+  //     console.warn(
+  //       `Warning: ${unmatchedHandsCount} hands (${(
+  //         (unmatchedHandsCount / originalData.length) *
+  //         100
+  //       ).toFixed(
+  //         1
+  //       )}%) couldn't be matched to any session and were assigned to the highest stakes session`
+  //     );
+  //   }
 
   // Step 4: Calculate rake-adjusted data with dynamic big blind sizes
   const rakeAdjustedData = calculateRakeAdjustedData(

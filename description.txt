@@ -1,0 +1,6 @@
+Description of my chrome extension:
+Chrome extension thats specific purpose is to provide additional statistics about the users poker results on GGPoker.
+GGPoker uses pokercraf.com to allow players to view the results graph for cash games. This graph does not take into account rake paid and thus over estimates how well the player has done.
+So what my extension does is provide a rake adjusted graph along side the native graph. It also provides some additional stats with the graph.
+This is all done by accessing the data from the native graph and running calculations in the client (currently the extension is all client side).
+The extension just automatically makes these changes/adds the extra graph and info when the user is on pokercraft.com
