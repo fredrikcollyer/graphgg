@@ -37,8 +37,8 @@ function createRakeAdjustedGraph() {
   console.table(sessionStats);
 
   // Display stake distribution
-  console.log("=== STAKE DISTRIBUTION ===");
-  console.table(stakeDistribution);
+  //   console.log("=== STAKE DISTRIBUTION ===");
+  //   console.table(stakeDistribution);
 
   // Log information about unmatched hands
   if (unmatchedHandsCount > 0 && debugIsTrue) {
@@ -155,15 +155,18 @@ function extractPokerSessionData() {
     const stakesStr = getCellContent("Stakes");
     let bigBlind = null;
     if (stakesStr) {
-      const bbMatch = stakesStr.match(/\$(\d+\.\d+)$/);
+      // Use a regex to capture the number after "/$"
+      const bbMatch = stakesStr.match(/\/\$(\d+(?:\.\d+)?)/);
       if (bbMatch) {
         bigBlind = parseFloat(bbMatch[1]);
+      } else {
+        console.error("Big blind not found in stakes:", stakesStr);
       }
     }
 
     let startTimestamp = null;
     if (startTime) {
-      console.log("Session start time:", startTime);
+      //   console.log("Session start time:", startTime);
 
       // Get the year from our mapping
       const year = dateTimeToYearMap[startTime];
@@ -219,7 +222,7 @@ function extractPokerSessionData() {
           parseInt(minute)
         );
         startTimestamp = dateObj.getTime();
-        console.log(`Using year ${year} for session ${startTime}`);
+        // console.log(`Using year ${year} for session ${startTime}`);
       }
     }
 
@@ -291,8 +294,6 @@ function extractEVGraphData() {
     const dataPoints = chartBuilder.options?.data?.[0]?.dataPoints;
     if (!dataPoints || !dataPoints.length)
       throw new Error("Data points not found");
-
-    console.log(`Found ${dataPoints.length} data points`);
     return dataPoints;
   } catch (error) {
     console.error("Error extracting data:", error);
@@ -414,7 +415,7 @@ function matchHandsToSessions(handData, sessions) {
     if (!stakeDistribution[stakesKey]) {
       stakeDistribution[stakesKey] = {
         count: 0,
-        bigBlind: session.bigBlind || 0,
+        bigBlind: session.bigBlind,
         totalAmount: 0,
       };
     }
@@ -432,13 +433,8 @@ function matchHandsToSessions(handData, sessions) {
 
   // Calculate BB results and BB/100 for stake distribution
   Object.values(stakeDistribution).forEach((stake) => {
-    if (stake.bigBlind && stake.bigBlind > 0) {
-      stake.bbResult = stake.totalAmount / stake.bigBlind;
-      stake.bbPer100 = (stake.bbResult / stake.count) * 100;
-    } else {
-      stake.bbResult = 0;
-      stake.bbPer100 = 0;
-    }
+    stake.bbResult = stake.totalAmount / stake.bigBlind;
+    stake.bbPer100 = (stake.bbResult / stake.count) * 100;
   });
 
   // Convert stake distribution to array format for return value
@@ -455,24 +451,24 @@ function matchHandsToSessions(handData, sessions) {
   );
 
   // Log session assignments for debugging
-  console.log("=== SESSION ASSIGNMENTS ===");
-  sortedSessions.forEach((session, idx) => {
-    console.log(
-      `Session ${idx + 1} (${session.startTime}): ${session.assignedHands}/${
-        session.hands
-      } hands assigned`
-    );
-  });
+  //   console.log("=== SESSION ASSIGNMENTS ===");
+  //   sortedSessions.forEach((session, idx) => {
+  //     console.log(
+  //       `Session ${idx + 1} (${session.startTime}): ${session.assignedHands}/${
+  //         session.hands
+  //       } hands assigned`
+  //     );
+  //   });
 
   // Verify that all hands are assigned (not necessarily that all sessions are filled)
-  console.log("=== SESSION ASSIGNMENTS ===");
-  sortedSessions.forEach((session, idx) => {
-    console.log(
-      `Session ${idx + 1} (${session.startTime}): ${session.assignedHands}/${
-        session.hands
-      } hands assigned`
-    );
-  });
+  //   console.log("=== SESSION ASSIGNMENTS ===");
+  //   sortedSessions.forEach((session, idx) => {
+  //     console.log(
+  //       `Session ${idx + 1} (${session.startTime}): ${session.assignedHands}/${
+  //         session.hands
+  //       } hands assigned`
+  //     );
+  //   });
 
   // Check if the total hands assigned equals the total hands we have
   const totalHandsAssigned = sortedSessions.reduce(
@@ -492,31 +488,29 @@ function matchHandsToSessions(handData, sessions) {
   }
 
   // Just log a warning for sessions that aren't fully filled
-  const incompleteSessions = sortedSessions.filter(
-    (session) => session.assignedHands !== session.hands
-  );
-  if (incompleteSessions.length > 0) {
-    console.warn("=== SESSION ASSIGNMENT WARNING ===");
-    console.warn(
-      `${incompleteSessions.length} sessions do not have the exact number of hands expected:`
-    );
+  //   const incompleteSessions = sortedSessions.filter(
+  //     (session) => session.assignedHands !== session.hands
+  //   );
+  //   if (incompleteSessions.length > 0) {
+  //     console.warn("=== SESSION ASSIGNMENT WARNING ===");
+  //     console.warn(
+  //       `${incompleteSessions.length} sessions do not have the exact number of hands expected:`
+  //     );
 
-    incompleteSessions.forEach((session) => {
-      const sessionIndex = sortedSessions.indexOf(session);
-      console.warn(
-        `Session ${sessionIndex + 1} (${session.startTime}): ${
-          session.assignedHands
-        }/${session.hands} hands assigned`
-      );
-    });
+  //     incompleteSessions.forEach((session) => {
+  //       const sessionIndex = sortedSessions.indexOf(session);
+  //       console.warn(
+  //         `Session ${sessionIndex + 1} (${session.startTime}): ${
+  //           session.assignedHands
+  //         }/${session.hands} hands assigned`
+  //       );
+  //     });
 
-    // Just a warning, not an error
-    console.warn(
-      "This is normal if you have more session capacity than hands to assign."
-    );
-  }
-
-  console.log("Hand-to-session assignment completed successfully!");
+  //     // Just a warning, not an error
+  //     console.warn(
+  //       "This is normal if you have more session capacity than hands to assign."
+  //     );
+  //   }
 
   return {
     matchedData,
@@ -599,27 +593,6 @@ function findMaximumBipartiteMatching(handSessionCompatibility, sessions) {
       }
     }
   }
-
-  console.log(`Assigned ${assignedHandsCount} hands out of ${numHands}`);
-  console.log(
-    "Session hand counts:",
-    sessionHandCounts
-      .map(
-        (count, idx) => `Session ${idx + 1}: ${count}/${sessions[idx].hands}`
-      )
-      .join(", ")
-  );
-
-  // Verify each session got the correct number of hands
-  sessions.forEach((session, idx) => {
-    if (sessionHandCounts[idx] !== session.hands) {
-      console.error(
-        `Session ${idx + 1} has ${sessionHandCounts[idx]} hands but expected ${
-          session.hands
-        }`
-      );
-    }
-  });
 
   return handToSession;
 }
@@ -714,7 +687,7 @@ function calculateRakeAdjustedData(originalData, rakePercentage, rakeCap_BB) {
   // Apply rake adjustments
   const adjustedHandResults = handResults.map((hand) => {
     if (hand.amount > 0) {
-      const bigBlindSize = hand.sessionData?.bigBlind || 0.1;
+      const bigBlindSize = hand.sessionData.bigBlind;
       const rakeCap = rakeCap_BB * bigBlindSize;
       const estimatedPotSize = hand.amount * 2; // Assuming the pot is twice our win
       const rake = Math.min(estimatedPotSize * rakePercentage, rakeCap);
@@ -748,7 +721,7 @@ function calculateRakeAdjustedData(originalData, rakePercentage, rakeCap_BB) {
     return {
       ...hand,
       appliedRake: 0,
-      bigBlindSize: hand.sessionData?.bigBlind || 0.1,
+      bigBlindSize: hand.sessionData.bigBlind,
     };
   });
 
@@ -1079,7 +1052,10 @@ function displayComparisonChart(
       const stakesKey = hand.sessionData.stakes;
       const bigBlind = hand.bigBlindSize;
 
-      if (!stakesKey || !bigBlind) return;
+      if (!stakesKey || !bigBlind) {
+        console.error("Missing stakes or big blind size for hand", hand);
+        return;
+      }
 
       let adjustedAmount, adjustedEv;
 
