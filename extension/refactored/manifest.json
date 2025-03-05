@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "PokerCraft Rake-Adjusted Graph",
+  "version": "1.0",
+  "description": "Extracts data and creates a rake-adjusted EV graph on Pokercraft pages.",
+  "content_scripts": [
+    {
+      "matches": ["https://my.pokercraft.com/*"],
+      "js": ["contentScript.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "dataExtraction.js", 
+        "dataProcessing.js",
+        "calculations.js",
+        "visualization.js",
+        "uiEnhancements.js",
+        "observers.js",
+        "pageScript.js"
+      ],
+      "matches": ["https://my.pokercraft.com/*"]
+    }
+  ],
+  "permissions": ["activeTab"]
+}

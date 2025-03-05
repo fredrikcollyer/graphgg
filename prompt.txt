@@ -1,4 +1,0 @@
-App desc:
-The app is a script that is intended to be run in the console when in a specific page on the website pokercraft.
-It extracts some data from the site including graph/chart data and session data then uses it to create a rake adjueted version of the greaph that is already displayed on the page.
-It also displays some calculated stats along with the rake adjusted graph.
