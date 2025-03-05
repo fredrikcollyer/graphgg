@@ -1,0 +1,368 @@
+/* styles.css */
+
+/* Theme Colors */
+:root {
+  --primary: #9d4edd;
+  --primary-light: #b066e6;
+  --dark-bg: #1a1a1a;
+  --medium-bg: #222222;
+  --light-bg: #2a2a2a;
+  --border-color: #333333;
+  --text-color: #f0f0f0;
+  --muted-text-color: #aaaaaa;
+  --positive-color: #16d609;
+  --negative-color: #ff0000;
+  --original-line-color: #64b5f6;
+  --adjusted-line-color: #4caf50;
+  --grid-color: rgba(64, 64, 64, 1);
+}
+
+/* Theme Borders */
+:root {
+  --border-radius: 0px;
+  --border-width: 2px;
+  --border-style: solid;
+}
+
+/* Theme Effects */
+:root {
+  --glow: 0 0 10px rgba(157, 78, 221, 0.7);
+  --hover-glow: 0 0 15px rgba(176, 102, 230, 0.9);
+  --text-shadow: 0 0 5px rgba(157, 78, 221, 0.7);
+  --hover-text-shadow: 0 0 10px rgba(176, 102, 230, 0.9);
+}
+
+/* Theme Typography */
+:root {
+  --font-family: "Arial", sans-serif;
+  --default-size: 14px;
+  --title-size: 16px;
+  --subtitle-size: 14px;
+  --small-size: 12px;
+  --tiny-size: 11px;
+  --brand-text-size: 11px;
+  --small-brand-text-size: 8px;
+}
+
+/* Theme Spacing */
+:root {
+  --spacing-small: 8px;
+  --spacing-medium: 15px;
+  --spacing-large: 20px;
+}
+
+/* Animations */
+@keyframes borderGlow {
+  0% {
+    border-color: rgba(157, 78, 221, 0.7);
+  }
+  25% {
+    border-color: rgba(138, 43, 226, 0.9);
+  }
+  50% {
+    border-color: rgba(186, 85, 211, 0.8);
+  }
+  75% {
+    border-color: rgba(138, 43, 226, 0.9);
+  }
+  100% {
+    border-color: rgba(157, 78, 221, 0.7);
+  }
+}
+
+@keyframes textPulse {
+  0% {
+    color: rgba(157, 78, 221, 0.8);
+    text-shadow: 0 0 5px rgba(157, 78, 221, 0.7);
+  }
+  50% {
+    color: rgba(186, 85, 211, 1);
+    text-shadow: 0 0 8px rgba(186, 85, 211, 0.9);
+  }
+  100% {
+    color: rgba(157, 78, 221, 0.8);
+    text-shadow: 0 0 5px rgba(157, 78, 221, 0.7);
+  }
+}
+
+/* Container Styles */
+.revamp-container {
+  background-color: var(--dark-bg);
+  padding: var(--spacing-medium);
+  border: var(--border-width) var(--border-style) var(--primary);
+  border-radius: var(--border-radius);
+  box-shadow: var(--glow);
+  margin-top: var(--spacing-large);
+  margin-bottom: var(--spacing-large);
+  position: relative;
+  overflow: visible;
+}
+
+/* Badge Styles */
+.revamp-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 4px 8px 4px 8px;
+  background: transparent;
+  z-index: 5;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.revamp-badge-small {
+  padding: 3px 6px 3px 6px;
+}
+
+/* General utility */
+.revamp-relative-position {
+  position: relative;
+}
+
+/* Brand Text Styles */
+.revamp-brand-text {
+  display: block;
+  color: var(--primary);
+  font-family: var(--font-family);
+  font-weight: bold;
+  font-size: var(--brand-text-size);
+  letter-spacing: 0.5px;
+  text-shadow: var(--text-shadow);
+  pointer-events: none;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+  animation: textPulse 3s infinite ease-in-out;
+}
+
+.revamp-brand-text-small {
+  font-size: var(--small-brand-text-size);
+}
+
+/* Section Styles */
+.revamp-section {
+  padding: var(--spacing-medium);
+  margin-bottom: var(--spacing-medium);
+  background-color: var(--medium-bg);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+}
+
+/* Table Styles */
+.revamp-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text-color);
+  font-size: var(--default-size);
+}
+
+/* Button Enhancement Styles */
+button[data-revamp-enhanced="true"]:not([data-revamp-nav-button="true"]) {
+  overflow: visible;
+  box-shadow: var(--glow);
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--primary);
+  box-sizing: border-box;
+  border-radius: var(--border-radius);
+  animation: borderGlow 3s infinite ease-in-out;
+}
+
+button[data-revamp-enhanced="true"]:not([data-revamp-nav-button="true"]):hover {
+  box-shadow: var(--hover-glow);
+  border-color: var(--primary-light);
+}
+
+button[data-revamp-nav-button="true"] {
+  overflow: visible;
+  border-width: 0;
+  box-sizing: border-box;
+  border-radius: 0;
+}
+
+/* Hover state for brand text */
+button[data-revamp-enhanced="true"]:hover .revamp-brand-text {
+  color: var(--primary-light);
+  text-shadow: var(--hover-text-shadow);
+}
+
+/* Chart container styles */
+#rake-adjusted-chart-container {
+  width: 100%;
+  height: 400px;
+  margin-top: 20px;
+  position: relative;
+}
+
+/* Chart header styles */
+.revamp-chart-header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 15px;
+  position: relative;
+}
+
+.revamp-chart-title {
+  text-align: center;
+  margin: 0;
+  padding: 8px 0;
+  color: var(--text-color);
+  font-family: var(--font-family);
+  font-weight: 600;
+  font-size: var(--title-size);
+}
+
+.revamp-chart-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 4px 8px;
+}
+
+/* Results container styles */
+.revamp-results-container {
+  margin-top: var(--spacing-large);
+}
+
+/* Summary section styles */
+.revamp-summary {
+  text-align: center;
+}
+
+.revamp-summary-title {
+  margin-bottom: var(--spacing-medium);
+  font-size: var(--title-size);
+  font-weight: bold;
+  color: var(--text-color);
+}
+
+.revamp-summary-cards {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.revamp-summary-card {
+  flex: 1;
+  min-width: 150px;
+  padding: var(--spacing-medium);
+  background-color: var(--light-bg);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+}
+
+.revamp-card-title {
+  font-size: var(--small-size);
+  color: var(--muted-text-color);
+  margin-bottom: var(--spacing-small);
+}
+
+.revamp-card-value {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--text-color);
+}
+
+/* Tables container styles */
+.revamp-tables-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: space-between;
+}
+
+.revamp-table-container {
+  flex: 1 1 48%;
+  min-width: 320px;
+  margin-bottom: var(--spacing-large);
+}
+
+.revamp-table-title {
+  text-align: center;
+  margin-bottom: var(--spacing-medium);
+}
+
+.revamp-accent-bar {
+  height: 3px;
+  width: 60px;
+  margin: 0 auto var(--spacing-medium) auto;
+  border-radius: var(--border-radius);
+}
+
+/* Notes container styles */
+.revamp-notes-container {
+  margin-top: var(--spacing-medium);
+  padding: 12px;
+  font-size: var(--small-size);
+  color: var(--muted-text-color);
+  text-align: center;
+}
+
+.revamp-note-line {
+  margin-bottom: 5px;
+}
+
+.revamp-footer-brand {
+  margin-top: 10px;
+  font-weight: bold;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  animation: textPulse 3s infinite ease-in-out;
+}
+
+/* Tooltip styles */
+.tooltip-value {
+  /* No specific styles needed but class added for future styling */
+}
+
+/* Table cell styles */
+.revamp-table th,
+.revamp-table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.revamp-table th {
+  background-color: var(--light-bg);
+  text-align: left;
+}
+
+.revamp-table td {
+  text-align: right;
+}
+
+.revamp-table td:first-child {
+  text-align: left;
+}
+
+.revamp-table tr.revamp-total-row {
+  font-weight: bold;
+  background-color: var(--light-bg);
+}
+
+.revamp-table tr.revamp-total-row td {
+  border-top: 1px solid var(--border-color);
+}
+
+/* Positive and negative values */
+.revamp-positive {
+  color: var(--positive-color);
+}
+
+.revamp-negative {
+  color: var(--negative-color);
+}
+
+/* EV color variations */
+.revamp-color-ev {
+  color: #ff9800; /* Orange for EV */
+}
+
+.revamp-bg-ev {
+  background-color: #ff9800; /* Orange for EV */
+}

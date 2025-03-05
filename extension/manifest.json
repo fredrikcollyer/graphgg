@@ -7,12 +7,13 @@
     {
       "matches": ["https://my.pokercraft.com/*"],
       "js": ["contentScript.js"],
+      "css": ["styles.css"],
       "run_at": "document_end"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["pageScript.js"],
+      "resources": ["pageScript.js", "styles.css"],
       "matches": ["https://my.pokercraft.com/*"]
     }
   ],

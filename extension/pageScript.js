@@ -1,190 +1,6 @@
 // pageScript.js
 console.log("PokerCraft extension loaded on " + window.location.href);
 
-// Define theme styles directly in this file
-const themeColors = {
-  primary: "#9d4edd", // Main theme color (purple)
-  primaryLight: "#b066e6", // Lighter theme color for hover states
-  darkBg: "#1a1a1a", // Dark background
-  mediumBg: "#222222", // Medium background
-  lightBg: "#2a2a2a", // Lighter background for contrast
-  borderColor: "#333333", // Border color for containers
-  textColor: "#f0f0f0", // Main text color
-  mutedTextColor: "#aaaaaa", // Muted text color for less important text
-  positiveColor: "#16d609",
-  negativeColor: "#FF0000",
-  originalLineColor: "#64B5F6", // Blue for original data lines
-  adjustedLineColor: "#4CAF50", // Green for adjusted data lines
-  gridColor: "rgba(64, 64, 64, 1)", // Slightly lighter grid lines for better visibility
-};
-
-const themeBorders = {
-  radius: 0, // Border radius for UI elements (0 for square corners)
-  width: "2px", // Default border width
-  style: "solid", // Default border style
-};
-
-const themeEffects = {
-  glow: "0 0 10px rgba(157, 78, 221, 0.7)", // Default glow effect
-  hoverGlow: "0 0 15px rgba(176, 102, 230, 0.9)", // Glow effect on hover
-  textShadow: "0 0 5px rgba(157, 78, 221, 0.7)", // Text shadow for branded text
-  hoverTextShadow: "0 0 10px rgba(176, 102, 230, 0.9)", // Text shadow on hover
-};
-
-const themeAnimations = {
-  // Border glow animation keyframes
-  borderGlow: `
-  @keyframes borderGlow {
-    0% { border-color: rgba(157, 78, 221, 0.7); }
-    25% { border-color: rgba(138, 43, 226, 0.9); }
-    50% { border-color: rgba(186, 85, 211, 0.8); }
-    75% { border-color: rgba(138, 43, 226, 0.9); }
-    100% { border-color: rgba(157, 78, 221, 0.7); }
-  }`,
-
-  // Text pulse animation keyframes
-  textPulse: `
-  @keyframes textPulse {
-    0% { color: rgba(157, 78, 221, 0.8); text-shadow: 0 0 5px rgba(157, 78, 221, 0.7); }
-    50% { color: rgba(186, 85, 211, 1); text-shadow: 0 0 8px rgba(186, 85, 211, 0.9); }
-    100% { color: rgba(157, 78, 221, 0.8); text-shadow: 0 0 5px rgba(157, 78, 221, 0.7); }
-  }`,
-};
-
-const themeTypography = {
-  fontFamily: "'Arial', sans-serif",
-  defaultSize: "14px",
-  titleSize: "16px",
-  subtitleSize: "14px",
-  smallSize: "12px",
-  tinySize: "11px",
-  brandTextSize: "11px",
-  smallBrandTextSize: "8px",
-};
-
-const themeSpacing = {
-  small: "8px",
-  medium: "15px",
-  large: "20px",
-};
-
-// Style utility functions
-/**
- * Returns styling for main containers
- * Uses: themeColors, themeSpacing, themeBorders, themeEffects
- */
-const getContainerStyle = () => {
-  return {
-    backgroundColor: themeColors.darkBg,
-    padding: themeSpacing.medium,
-    border: `${themeBorders.width} ${themeBorders.style} ${themeColors.primary}`,
-    borderRadius: `${themeBorders.radius}px`,
-    boxShadow: themeEffects.glow,
-    marginTop: themeSpacing.large,
-    marginBottom: themeSpacing.large,
-    position: "relative",
-    overflow: "visible",
-  };
-};
-
-/**
- * Returns styling for badges
- * Uses: none
- */
-const getBadgeStyle = (isSmall = false) => {
-  return {
-    position: "absolute",
-    top: "0",
-    right: "0",
-    padding: isSmall ? "3px 6px 3px 6px" : "4px 8px 4px 8px",
-    background: "transparent",
-    zIndex: "5",
-    boxSizing: "border-box",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    pointerEvents: "none",
-  };
-};
-
-/**
- * Returns styling for brand text
- * Uses: themeColors, themeTypography, themeEffects
- */
-const getBrandTextStyle = (isSmall = false) => {
-  return {
-    display: "block",
-    color: themeColors.primary,
-    fontFamily: themeTypography.fontFamily,
-    fontWeight: "bold",
-    fontSize: isSmall
-      ? themeTypography.smallBrandTextSize
-      : themeTypography.brandTextSize,
-    letterSpacing: "0.5px",
-    textShadow: themeEffects.textShadow,
-    pointerEvents: "none",
-    lineHeight: "1",
-    textAlign: "center",
-    textTransform: "uppercase",
-  };
-};
-
-/**
- * Returns styling for sections
- * Uses: themeSpacing, themeColors, themeBorders
- */
-const getSectionStyle = () => {
-  return {
-    padding: themeSpacing.medium,
-    marginBottom: themeSpacing.medium,
-    backgroundColor: themeColors.mediumBg,
-    borderRadius: `${themeBorders.radius}px`,
-    border: `1px solid ${themeColors.borderColor}`,
-  };
-};
-
-/**
- * Returns styling for tables
- * Uses: themeColors, themeTypography
- */
-const getTableStyle = () => {
-  return {
-    width: "100%",
-    borderCollapse: "collapse",
-    color: themeColors.textColor,
-    fontSize: themeTypography.defaultSize,
-  };
-};
-
-/**
- * Injects global styles for animations
- * Uses: themeAnimations
- */
-const injectGlobalStyles = () => {
-  if (!document.getElementById("revamp-global-styles")) {
-    const styleEl = document.createElement("style");
-    styleEl.id = "revamp-global-styles";
-    styleEl.textContent = `
-      ${themeAnimations.borderGlow}
-      ${themeAnimations.textPulse}
-      
-      /* Apply animations to enhanced buttons */
-      button[revamp-enhanced="true"] {
-        animation: borderGlow 3s infinite ease-in-out;
-      }
-      
-      button[revamp-enhanced="true"] .revamp-badge span,
-      .revamp-brand-text {
-        animation: textPulse 3s infinite ease-in-out;
-      }
-    `;
-    document.head.appendChild(styleEl);
-  }
-};
-
-// Call to inject styles
-injectGlobalStyles();
-
 // =================================================================
 // CONSTANTS AND STATE
 // =================================================================
@@ -194,14 +10,9 @@ const evButtonSelector = 'button[kind="EvGraph"]';
 const rushAndCashSelector = 'a.nav-item[nav="rnc"]';
 const holdemSelector = 'a.nav-item[nav="holdem"]';
 const omahaSelector = 'a.nav-item[nav="omaha"]';
-
-// List of selectors for buttons that should trigger cleanup
-const cleanupTriggerSelectors = [
-  'button[kind="Hands"]', // Game History
-  'button[kind="HoleCards"]', // Hole Cards
-  'button[kind="Position"]', // Position
-  "a.ng-star-inserted span", // Next X hands (will verify text content)
-];
+const gameHistorySelector = 'button[kind="Hands"]';
+const holeCardsSelector = 'button[kind="HoleCards"]';
+const positionSelector = 'button[kind="Position"]';
 
 // Timing constants
 const MAX_ATTEMPTS = 180;
@@ -209,8 +20,6 @@ const MS_BETWEEN_ATTEMPTS = 1000;
 
 // App state variables
 let isProcessing = false; // Flag to prevent multiple simultaneous executions
-let buttonObserver = null;
-let lastUrl = location.href;
 
 // =================================================================
 // EVENT HANDLER FUNCTIONS
@@ -229,7 +38,7 @@ function handleEvButtonClick() {
  * Handles Next Hands button click event
  * Uses: cleanupPreviousCharts, pollForChartDataAndCreate
  */
-function handleNextHandsButtonClick(e) {
+function handleNextHandsButtonClick() {
   console.log("Next hands button clicked.");
 
   // Clean up previous charts
@@ -248,129 +57,31 @@ function handleNextHandsButtonClick(e) {
 }
 
 /**
- * Handles cleanup trigger button click events
+ * Handles Game History button click event
  * Uses: cleanupPreviousCharts
  */
-function handleCleanupTriggerClick(e) {
-  console.log(
-    `Cleanup trigger clicked: ${
-      e.currentTarget.textContent || e.currentTarget.innerText
-    }`
-  );
+function handleGameHistoryButtonClick() {
+  console.log("Game History button clicked.");
   cleanupPreviousCharts();
 }
 
 /**
- * Handles URL change events
- * Uses: setupButtonObserver
+ * Handles Hole Cards button click event
+ * Uses: cleanupPreviousCharts
  */
-function handleUrlChange(newUrl) {
-  console.log("URL changed to", newUrl);
-
-  // Reset and re-setup our observers
-  if (buttonObserver) {
-    buttonObserver.disconnect();
-  }
-
-  // Wait a bit for the new page to load its components
-  setTimeout(() => {
-    setupButtonObserver();
-  }, MS_BETWEEN_ATTEMPTS);
+function handleHoleCardsButtonClick() {
+  console.log("Hole Cards button clicked.");
+  cleanupPreviousCharts();
 }
 
 /**
- * Handles button hover events
- * Uses: themeEffects, themeColors
+ * Handles Position button click event
+ * Uses: cleanupPreviousCharts
  */
-function handleButtonHover(e, revampText, isNavButton) {
-  // Check if event target and text element exist
-  if (!e || !e.currentTarget || !e.currentTarget.style) {
-    console.warn("Button element missing in hover handler");
-    return;
-  }
-
-  if (!revampText || !revampText.style) {
-    console.warn("Text element missing in hover handler");
-    return;
-  }
-
-  if (!isNavButton) {
-    // Apply hover effect to regular buttons
-    e.currentTarget.style.boxShadow = themeEffects.hoverGlow;
-    e.currentTarget.style.borderColor = themeColors.primaryLight;
-  }
-
-  // Update text color
-  revampText.style.color = themeColors.primaryLight;
-  revampText.style.textShadow = themeEffects.hoverTextShadow;
+function handlePositionButtonClick() {
+  console.log("Position button clicked.");
+  cleanupPreviousCharts();
 }
-
-/**
- * Handles button mouseout events
- * Uses: themeEffects, themeColors
- */
-function handleButtonMouseout(e, revampText, isNavButton) {
-  // Check if event target and text element exist
-  if (!e || !e.currentTarget || !e.currentTarget.style) {
-    console.warn("Button element missing in mouseout handler");
-    return;
-  }
-
-  if (!revampText || !revampText.style) {
-    console.warn("Text element missing in mouseout handler");
-    return;
-  }
-
-  if (!isNavButton) {
-    // Reset regular buttons to default
-    e.currentTarget.style.boxShadow = themeEffects.glow;
-    e.currentTarget.style.borderColor = themeColors.primary;
-  }
-
-  // Reset text color
-  revampText.style.color = themeColors.primary;
-  revampText.style.textShadow = themeEffects.textShadow;
-
-  // Restart animations
-  e.currentTarget.style.animation = "none";
-  revampText.style.animation = "none";
-
-  setTimeout(() => {
-    // Restore animations - check if currentTarget still exists
-    if (e.currentTarget && e.currentTarget.style) {
-      e.currentTarget.style.animation = isNavButton
-        ? "none"
-        : "borderGlow 3s infinite ease-in-out";
-    }
-
-    // Check if revampText still exists
-    if (revampText && revampText.style) {
-      revampText.style.animation = "textPulse 3s infinite ease-in-out";
-    }
-  }, 10);
-}
-
-// =================================================================
-// ELEMENT DETECTION AND INITIALIZATION
-// =================================================================
-
-// We've moved the button finding and handler attachment logic directly
-// into the findAndAttachButtonHandlers function for a more direct control flow
-
-// =================================================================
-// DOM OBSERVATION FUNCTIONS
-// =================================================================
-
-// The DOM observation approach has been simplified.
-// The new control flow is:
-//
-// initApp() → sets up URL change detection and initial button handlers
-//     ↓
-// setupButtonHandlers() → sets up the DOM mutation observer
-//     ↓
-// findAndAttachButtonHandlers() → directly attaches handlers to all buttons
-//
-// This provides a clear, explicit flow with less indirection
 
 // =================================================================
 // UTILITY FUNCTIONS
@@ -383,9 +94,9 @@ function handleButtonMouseout(e, revampText, isNavButton) {
 function cleanupPreviousCharts() {
   console.log("Cleaning up previous charts");
 
-  // Find all elements with our custom class
+  // Find all elements with our custom attribute
   const customElements = document.querySelectorAll(
-    ".poker-craft-rake-adjusted-wrapper"
+    "[data-revamp-chart='true']"
   );
   if (customElements.length > 0) {
     console.log(
@@ -399,7 +110,7 @@ function cleanupPreviousCharts() {
 
 /**
  * Function to check for chart data and create graph
- * Uses: isProcessing, extractEVGraphData, createRakeAdjustedGraph, findAndAttachButtonHandlers, MAX_ATTEMPTS, MS_BETWEEN_ATTEMPTS
+ * Uses: isProcessing, extractEVGraphData, createRakeAdjustedGraph, enhanceButtons, MAX_ATTEMPTS, MS_BETWEEN_ATTEMPTS
  */
 function pollForChartDataAndCreate() {
   if (isProcessing) {
@@ -433,8 +144,8 @@ function pollForChartDataAndCreate() {
           // Create the new chart
           createRakeAdjustedGraph();
 
-          // After creating the graph, check for buttons that might have appeared
-          setTimeout(findAndAttachButtonHandlers, MS_BETWEEN_ATTEMPTS);
+          // After creating the graph, ensure buttons are enhanced
+          setTimeout(enhanceButtons, MS_BETWEEN_ATTEMPTS);
 
           isProcessing = false;
           return;
@@ -464,21 +175,38 @@ function pollForChartDataAndCreate() {
 }
 
 /**
- * Enhance a button with revamp.gg styling
- * Uses: themeEffects, themeBorders, themeColors, getBadgeStyle, getBrandTextStyle, handleButtonHover, handleButtonMouseout
+ * Set up animation properties on an element
+ * Note: Most animations are now handled by CSS
+ */
+function setupElementAnimation(element, animationType, duration = "3s") {
+  // Animation is now handled by CSS classes
+  if (!element) return;
+
+  // Just add the appropriate class based on animation type
+  if (animationType === "border") {
+    // Border animation is applied via CSS
+  } else if (animationType === "text") {
+    // Text animation is applied via CSS
+  }
+}
+
+/**
+ * Enhance a button with revamp.gg styling using CSS classes
  */
 function enhanceButton(button, buttonType) {
-  if (button.hasAttribute("revamp-enhanced")) {
+  // Check if button is already enhanced
+  if (button.getAttribute("data-revamp-enhanced") === "true") {
     return; // Already enhanced
   }
 
   // Mark button as enhanced
-  button.setAttribute("revamp-enhanced", "true");
+  button.setAttribute("data-revamp-enhanced", "true");
 
   // Set position for absolute positioning if needed
   const originalPosition = window.getComputedStyle(button).position;
   if (originalPosition === "static") {
-    button.style.position = "relative";
+    // Add a class to handle position in CSS
+    button.classList.add("revamp-relative-position");
   }
 
   const isSmallButton = buttonType !== "EV Graph";
@@ -487,58 +215,74 @@ function enhanceButton(button, buttonType) {
     buttonType === "Hold'em" ||
     buttonType === "PLO";
 
-  // Apply styling to the button
-  button.style.overflow = "visible";
-
+  // Add nav button data attribute if needed
   if (isNavButton) {
-    // For nav buttons, don't show any borders
-    button.style.borderWidth = "0";
-    button.style.boxSizing = "border-box";
-    button.style.borderRadius = "0";
-  } else {
-    // For other buttons (like EV Graph), show full border with glow
-    button.style.boxShadow = themeEffects.glow;
-    button.style.borderWidth = themeBorders.width;
-    button.style.borderStyle = themeBorders.style;
-    button.style.borderColor = themeColors.primary;
-    button.style.boxSizing = "border-box";
-    button.style.borderRadius = `${themeBorders.radius}px`;
+    button.setAttribute("data-revamp-nav-button", "true");
   }
 
   // Create the badge container
   const badgeContainer = document.createElement("div");
-  badgeContainer.className = "revamp-badge";
+  badgeContainer.setAttribute("data-revamp-badge", "true");
+  badgeContainer.classList.add("revamp-badge");
 
-  // Apply badge styles
-  const badgeStyle = getBadgeStyle(isSmallButton);
-  Object.keys(badgeStyle).forEach((key) => {
-    badgeContainer.style[key] = badgeStyle[key];
-  });
+  if (isSmallButton) {
+    badgeContainer.classList.add("revamp-badge-small");
+  }
 
   // Add the text
   const revampText = document.createElement("span");
   revampText.textContent = "REVAMP.GG";
+  revampText.setAttribute("data-revamp-text", "true");
+  revampText.classList.add("revamp-brand-text");
 
-  // Apply brand text styles
-  const textStyle = getBrandTextStyle(isSmallButton);
-  Object.keys(textStyle).forEach((key) => {
-    revampText.style[key] = textStyle[key];
-  });
-
-  // Enhanced hover effect - only on the button but affects text color
-  button.addEventListener("mouseover", (e) =>
-    handleButtonHover(e, revampText, isNavButton)
-  );
-
-  button.addEventListener("mouseout", (e) =>
-    handleButtonMouseout(e, revampText, isNavButton)
-  );
+  if (isSmallButton) {
+    revampText.classList.add("revamp-brand-text-small");
+  }
 
   // Assemble and append
   badgeContainer.appendChild(revampText);
   button.appendChild(badgeContainer);
 
   console.log(`Enhanced ${buttonType} button with revamp.gg styling`);
+}
+
+/**
+ * Enhances all available buttons at once
+ * Uses: enhanceButton
+ */
+function enhanceButtons() {
+  // Enhance the EV Graph button if present
+  const evButton = document.querySelector(evButtonSelector);
+  if (evButton && evButton.getAttribute("data-revamp-enhanced") !== "true") {
+    enhanceButton(evButton, "EV Graph");
+  }
+
+  // Enhance Rush & Cash navigation button if present
+  const rushAndCashButton = document.querySelector(rushAndCashSelector);
+  if (
+    rushAndCashButton &&
+    rushAndCashButton.getAttribute("data-revamp-enhanced") !== "true"
+  ) {
+    enhanceButton(rushAndCashButton, "Rush & Cash");
+  }
+
+  // Enhance Hold'em navigation button if present
+  const holdemButton = document.querySelector(holdemSelector);
+  if (
+    holdemButton &&
+    holdemButton.getAttribute("data-revamp-enhanced") !== "true"
+  ) {
+    enhanceButton(holdemButton, "Hold'em");
+  }
+
+  // Enhance PLO navigation button if present
+  const omahaButton = document.querySelector(omahaSelector);
+  if (
+    omahaButton &&
+    omahaButton.getAttribute("data-revamp-enhanced") !== "true"
+  ) {
+    enhanceButton(omahaButton, "PLO");
+  }
 }
 
 // =================================================================
@@ -1300,10 +1044,7 @@ function displayComparisonChart(
     // Create the new chart elements
     const container = document.createElement("div");
     container.id = "rake-adjusted-chart-container";
-    container.style.width = "100%";
-    container.style.height = "400px";
-    container.style.marginTop = "20px";
-    container.style.position = "relative";
+    // Container styles are now in CSS
 
     const targetElement = document.querySelector(
       "app-game-session-detail-ev-graph"
@@ -1321,52 +1062,27 @@ function displayComparisonChart(
 
     // Create wrapper with border matching enhanced button
     const wrapper = document.createElement("div");
-    wrapper.className = "poker-craft-rake-adjusted-wrapper";
-    wrapper.dataset.timestamp = Date.now();
-    wrapper.dataset.parentComponentId =
-      targetElement.id || "ev-graph-component";
-
-    // Apply container styles
-    const containerStyle = getContainerStyle();
-    Object.keys(containerStyle).forEach((key) => {
-      wrapper.style[key] = containerStyle[key];
-    });
+    wrapper.setAttribute("data-revamp-chart", "true");
+    wrapper.setAttribute("data-timestamp", Date.now());
+    wrapper.setAttribute(
+      "data-parent-component-id",
+      targetElement.id || "ev-graph-component"
+    );
+    wrapper.classList.add("revamp-container");
 
     // Add header
     const header = document.createElement("div");
-    header.style.display = "flex";
-    header.style.justifyContent = "center";
-    header.style.marginBottom = "15px";
-    header.style.position = "relative";
+    header.classList.add("revamp-chart-header");
 
     // Create REVAMP.GG text styled like the enhanced button text
     const brandText = document.createElement("div");
-
-    // Apply brand text styles
-    const brandTextStyle = getBrandTextStyle(false);
-    Object.keys(brandTextStyle).forEach((key) => {
-      brandText.style[key] = brandTextStyle[key];
-    });
-
-    // Additional positioning for this specific use case
-    brandText.style.position = "absolute";
-    brandText.style.top = "0";
-    brandText.style.right = "0";
-    brandText.style.padding = "4px 8px";
+    brandText.setAttribute("data-revamp-brand-text", "true");
+    brandText.classList.add("revamp-brand-text", "revamp-chart-badge");
     brandText.textContent = "REVAMP.GG";
-
-    // Add brand text class
-    brandText.classList.add("revamp-brand-text");
 
     const title = document.createElement("h3");
     title.textContent = "Rake-Adjusted Graph";
-    title.style.textAlign = "center";
-    title.style.margin = "0";
-    title.style.padding = "8px 0";
-    title.style.color = themeColors.textColor;
-    title.style.fontFamily = themeTypography.fontFamily;
-    title.style.fontWeight = "600";
-    title.style.fontSize = themeTypography.titleSize;
+    title.classList.add("revamp-chart-title");
 
     header.appendChild(title);
     header.appendChild(brandText);
@@ -1384,40 +1100,57 @@ function displayComparisonChart(
     const difference = originalFinal - adjustedFinal;
     const percentDifference = (difference / Math.abs(originalFinal)) * 100;
 
+    // Get CSS variables for chart styling
+    const cssVars = getComputedStyle(document.documentElement);
+
     // Define colors for the graph
-    const winlossColor = themeColors.positiveColor; // Green for winloss
+    const winlossColor = cssVars.getPropertyValue("--positive-color").trim();
     const evColor = "#FF9800"; // Orange for EV
+    const darkBg = cssVars.getPropertyValue("--dark-bg").trim();
+    const textColor = cssVars.getPropertyValue("--text-color").trim();
+    const borderColor = cssVars.getPropertyValue("--border-color").trim();
+    const gridColor = cssVars.getPropertyValue("--grid-color").trim();
+    const mediumBg = cssVars.getPropertyValue("--medium-bg").trim();
+    const borderRadius = parseInt(
+      cssVars.getPropertyValue("--border-radius").trim()
+    );
+    const smallSize = parseInt(cssVars.getPropertyValue("--small-size").trim());
+    const titleSize = parseInt(cssVars.getPropertyValue("--title-size").trim());
+    const fontFamily = cssVars.getPropertyValue("--font-family").trim();
+    const subtitleSize = parseInt(
+      cssVars.getPropertyValue("--subtitle-size").trim()
+    );
 
     // Create the chart with axisY2 on the right-hand side.
     const chart = new CanvasJS.Chart(container.id, {
-      backgroundColor: themeColors.darkBg,
+      backgroundColor: darkBg,
       zoomEnabled: true,
       animationEnabled: true,
       theme: "dark2",
       axisX: {
         // title: "Hand number",
-        titleFontColor: themeColors.textColor,
-        titleFontSize: parseInt(themeTypography.subtitleSize),
-        labelFontColor: themeColors.textColor,
-        lineColor: themeColors.borderColor,
-        gridColor: themeColors.gridColor,
+        titleFontColor: textColor,
+        titleFontSize: subtitleSize,
+        labelFontColor: textColor,
+        lineColor: borderColor,
+        gridColor: gridColor,
         tickLength: 0,
       },
       // Define the secondary Y axis which renders on the right.
       axisY2: {
         // title: "Amount ($)",
-        labelFontColor: themeColors.textColor,
-        lineColor: themeColors.borderColor,
-        gridColor: themeColors.gridColor,
+        labelFontColor: textColor,
+        lineColor: borderColor,
+        gridColor: gridColor,
         valueFormatString: "$#,##0.##",
         tickLength: 0,
       },
       toolTip: {
         shared: true,
-        borderColor: themeColors.borderColor,
-        backgroundColor: themeColors.mediumBg,
-        fontColor: themeColors.textColor,
-        cornerRadius: themeBorders.radius,
+        borderColor: borderColor,
+        backgroundColor: mediumBg,
+        fontColor: textColor,
+        cornerRadius: borderRadius,
         contentFormatter: function (e) {
           // Check if we have any entries
           if (e.entries && e.entries.length > 0) {
@@ -1432,7 +1165,7 @@ function displayComparisonChart(
               const name = entry.dataSeries.name;
               const value = entry.dataPoint.y.toFixed(2);
 
-              content += `<span style="color: ${color};">${name}: $${value}</span><br/>`;
+              content += `<span class="tooltip-value" style="color: ${color};">${name}: $${value}</span><br/>`;
             }
 
             return content;
@@ -1442,8 +1175,8 @@ function displayComparisonChart(
       },
       legend: {
         cursor: "pointer",
-        fontColor: themeColors.textColor,
-        fontSize: parseInt(themeTypography.smallSize), // Reduced font size
+        fontColor: textColor,
+        fontSize: smallSize,
         verticalAlign: "bottom",
         horizontalAlign: "center",
         itemclick: function (e) {
@@ -1460,10 +1193,10 @@ function displayComparisonChart(
       },
       title: {
         text: "", // Remove the graph title
-        fontColor: themeColors.textColor,
-        fontSize: parseInt(themeTypography.titleSize),
+        fontColor: textColor,
+        fontSize: titleSize,
         fontWeight: "normal",
-        fontFamily: themeTypography.fontFamily,
+        fontFamily: fontFamily,
         padding: 10,
       },
       creditText: "",
@@ -1473,7 +1206,7 @@ function displayComparisonChart(
           axisYType: "secondary",
           name: "All-in EV (Rake-Adjusted)",
           showInLegend: true,
-          color: "#FF9800", // Orange for EV
+          color: evColor,
           lineThickness: 2,
           markerSize: 0,
           dataPoints: rakeAdjustedData.map((point) => ({
@@ -1487,7 +1220,7 @@ function displayComparisonChart(
           axisYType: "secondary",
           name: "Win/Loss (Rake-Adjusted)",
           showInLegend: true,
-          color: themeColors.positiveColor,
+          color: winlossColor,
           lineThickness: 2,
           markerSize: 0,
           dataPoints: rakeAdjustedData.map((point) => ({
@@ -1502,12 +1235,10 @@ function displayComparisonChart(
     chart.render();
 
     // Now that the new chart is in place, remove any old charts
-    const currentTimestamp = wrapper.dataset.timestamp;
-    const oldCharts = document.querySelectorAll(
-      ".poker-craft-rake-adjusted-wrapper"
-    );
+    const currentTimestamp = wrapper.getAttribute("data-timestamp");
+    const oldCharts = document.querySelectorAll("[data-revamp-chart='true']");
     oldCharts.forEach((chart) => {
-      if (chart.dataset.timestamp !== currentTimestamp) {
+      if (chart.getAttribute("data-timestamp") !== currentTimestamp) {
         chart.remove();
       }
     });
@@ -1623,52 +1354,31 @@ function displayComparisonChart(
 
     // Create summary section with enhanced styling
     const resultsContainer = document.createElement("div");
-    resultsContainer.style.marginTop = themeSpacing.large;
+    resultsContainer.classList.add("revamp-results-container");
 
-    // Create rake impact summary cards styled like the image
+    // Create rake impact summary cards
     const rakeImpactSummary = document.createElement("div");
-
-    // Apply section styles
-    const sectionStyle = getSectionStyle();
-    Object.keys(sectionStyle).forEach((key) => {
-      rakeImpactSummary.style[key] = sectionStyle[key];
-    });
-    rakeImpactSummary.style.textAlign = "center";
+    rakeImpactSummary.classList.add("revamp-section", "revamp-summary");
 
     const summaryTitle = document.createElement("div");
     summaryTitle.textContent = "Rake Summary";
-    summaryTitle.style.marginBottom = themeSpacing.medium;
-    summaryTitle.style.fontSize = themeTypography.titleSize;
-    summaryTitle.style.fontWeight = "bold";
-    summaryTitle.style.color = themeColors.textColor;
+    summaryTitle.classList.add("revamp-summary-title");
 
     const summaryCards = document.createElement("div");
-    summaryCards.style.display = "flex";
-    summaryCards.style.justifyContent = "space-around";
-    summaryCards.style.flexWrap = "wrap";
-    summaryCards.style.gap = "10px";
+    summaryCards.classList.add("revamp-summary-cards");
 
     // Create impact summary cards
     const createSummaryCard = (title, value) => {
       const card = document.createElement("div");
-      card.style.flex = "1";
-      card.style.minWidth = "150px";
-      card.style.padding = themeSpacing.medium;
-      card.style.backgroundColor = themeColors.lightBg;
-      card.style.borderRadius = `${themeBorders.radius}px`;
-      card.style.border = `1px solid ${themeColors.borderColor}`;
+      card.classList.add("revamp-summary-card");
 
       const cardTitle = document.createElement("div");
       cardTitle.textContent = title;
-      cardTitle.style.fontSize = themeTypography.smallSize;
-      cardTitle.style.color = themeColors.mutedTextColor;
-      cardTitle.style.marginBottom = themeSpacing.small;
+      cardTitle.classList.add("revamp-card-title");
 
       const cardValue = document.createElement("div");
       cardValue.innerHTML = value;
-      cardValue.style.fontSize = "18px";
-      cardValue.style.fontWeight = "bold";
-      cardValue.style.color = themeColors.textColor;
+      cardValue.classList.add("revamp-card-value");
 
       card.appendChild(cardTitle);
       card.appendChild(cardValue);
@@ -1699,53 +1409,47 @@ function displayComparisonChart(
 
     function createResultsTable(title, stakesData, totals, color) {
       const tableContainer = document.createElement("div");
-      tableContainer.style.marginBottom = themeSpacing.large;
-
-      // Apply section styles
-      const tableSectionStyle = getSectionStyle();
-      Object.keys(tableSectionStyle).forEach((key) => {
-        tableContainer.style[key] = tableSectionStyle[key];
-      });
+      tableContainer.classList.add("revamp-section", "revamp-table-container");
 
       // Create table header
       const tableTitle = document.createElement("div");
       tableTitle.textContent = title;
-      tableTitle.style.textAlign = "center";
-      tableTitle.style.marginBottom = themeSpacing.medium;
-      tableTitle.style.color = color;
-      tableTitle.style.fontSize = themeTypography.titleSize;
-      tableTitle.style.fontWeight = "bold";
+      tableTitle.classList.add("revamp-table-title");
+
+      // Use dynamic class for color
+      if (color === "#FF9800") {
+        tableTitle.classList.add("revamp-color-ev");
+      } else {
+        // Assuming this is positive color
+        tableTitle.classList.add("revamp-positive");
+      }
 
       // Add a colored accent bar under the title
       const accentBar = document.createElement("div");
-      accentBar.style.height = "3px";
-      accentBar.style.width = "60px";
-      accentBar.style.backgroundColor = color;
-      accentBar.style.margin = `0 auto ${themeSpacing.medium} auto`;
-      accentBar.style.borderRadius = `${themeBorders.radius}px`;
+      accentBar.classList.add("revamp-accent-bar");
+
+      // Use dynamic class for background-color
+      if (color === "#FF9800") {
+        accentBar.classList.add("revamp-bg-ev");
+      } else {
+        // Assuming this is positive color
+        accentBar.classList.add("revamp-positive");
+      }
 
       tableContainer.appendChild(tableTitle);
       tableContainer.appendChild(accentBar);
 
       const table = document.createElement("table");
-      // Apply table styles
-      const tableStyle = getTableStyle();
-      Object.keys(tableStyle).forEach((key) => {
-        table.style[key] = tableStyle[key];
-      });
-
-      // Table header styling
-      const headerBg = themeColors.lightBg;
-      const cellPadding = "10px";
+      table.classList.add("revamp-table");
 
       let tableHTML = `
         <thead>
-          <tr style="background-color: ${headerBg};">
-            <th style="padding: ${cellPadding}; text-align: left; border-bottom: 1px solid ${themeColors.borderColor};">Stakes</th>
-            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${themeColors.borderColor};">Hands</th>
-            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${themeColors.borderColor};">Win/Loss</th>
-            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${themeColors.borderColor};">BB Win/Loss</th>
-            <th style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${themeColors.borderColor};">BB/100</th>
+          <tr>
+            <th>Stakes</th>
+            <th>Hands</th>
+            <th>Win/Loss</th>
+            <th>BB Win/Loss</th>
+            <th>BB/100</th>
           </tr>
         </thead>
         <tbody>
@@ -1758,63 +1462,36 @@ function displayComparisonChart(
       sortedStakes.forEach((stake) => {
         if (stake.hands === 0) return;
 
-        const winLossColor =
-          stake.winloss >= 0
-            ? themeColors.positiveColor
-            : themeColors.negativeColor;
-        const bbPerColor =
-          stake.bbPer100 >= 0
-            ? themeColors.positiveColor
-            : themeColors.negativeColor;
+        // Use CSS classes for positive/negative values
+        const winLossClass =
+          stake.winloss >= 0 ? "revamp-positive" : "revamp-negative";
+        const bbPerClass =
+          stake.bbPer100 >= 0 ? "revamp-positive" : "revamp-negative";
 
         tableHTML += `
           <tr>
-            <td style="padding: ${cellPadding}; text-align: left; border-bottom: 1px solid ${
-          themeColors.borderColor
-        };">${stake.stakes}</td>
-            <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${
-          themeColors.borderColor
-        };">${stake.hands}</td>
-            <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${
-          themeColors.borderColor
-        }; color: ${winLossColor};">$${stake.winloss.toFixed(2)}</td>
-            <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${
-          themeColors.borderColor
-        }; color: ${winLossColor};">${stake.bbResult.toFixed(2)}</td>
-            <td style="padding: ${cellPadding}; text-align: right; border-bottom: 1px solid ${
-          themeColors.borderColor
-        }; color: ${bbPerColor};">${stake.bbPer100.toFixed(2)}</td>
+            <td>${stake.stakes}</td>
+            <td>${stake.hands}</td>
+            <td class="${winLossClass}">$${stake.winloss.toFixed(2)}</td>
+            <td class="${winLossClass}">${stake.bbResult.toFixed(2)}</td>
+            <td class="${bbPerClass}">${stake.bbPer100.toFixed(2)}</td>
           </tr>
         `;
       });
 
       // Total row
-      const totalWinLossColor =
-        totals.winloss >= 0
-          ? themeColors.positiveColor
-          : themeColors.negativeColor;
-      const totalBbPerColor =
-        totals.bbPer100 >= 0
-          ? themeColors.positiveColor
-          : themeColors.negativeColor;
+      const totalWinLossClass =
+        totals.winloss >= 0 ? "revamp-positive" : "revamp-negative";
+      const totalBbPerClass =
+        totals.bbPer100 >= 0 ? "revamp-positive" : "revamp-negative";
 
       tableHTML += `
-        <tr style="font-weight: bold; background-color: ${headerBg};">
-          <td style="padding: ${cellPadding}; text-align: left; border-top: 1px solid ${
-        themeColors.borderColor
-      };">TOTAL</td>
-          <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${
-        themeColors.borderColor
-      };">${totals.hands}</td>
-          <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${
-        themeColors.borderColor
-      }; color: ${totalWinLossColor};">$${totals.winloss.toFixed(2)}</td>
-          <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${
-        themeColors.borderColor
-      }; color: ${totalWinLossColor};">${totals.bbResult.toFixed(2)}</td>
-          <td style="padding: ${cellPadding}; text-align: right; border-top: 1px solid ${
-        themeColors.borderColor
-      }; color: ${totalBbPerColor};">${totals.bbPer100.toFixed(2)}</td>
+        <tr class="revamp-total-row">
+          <td>TOTAL</td>
+          <td>${totals.hands}</td>
+          <td class="${totalWinLossClass}">$${totals.winloss.toFixed(2)}</td>
+          <td class="${totalWinLossClass}">${totals.bbResult.toFixed(2)}</td>
+          <td class="${totalBbPerClass}">${totals.bbPer100.toFixed(2)}</td>
         </tr>
         </tbody>
       `;
@@ -1829,25 +1506,17 @@ function displayComparisonChart(
       "All-in EV Results (Rake-Adjusted)",
       evStakeData,
       evTotal,
-      evColor
+      "#FF9800" // Orange for EV
     );
     const adjustedTable = createResultsTable(
       "Win/Loss Results (Rake-Adjusted)",
       adjustedStakeData,
       adjustedTotal,
-      winlossColor
+      "var(--positive-color)" // Green for win/loss
     );
 
     const tablesContainer = document.createElement("div");
-    tablesContainer.style.display = "flex";
-    tablesContainer.style.flexWrap = "wrap";
-    tablesContainer.style.gap = "20px";
-    tablesContainer.style.justifyContent = "space-between";
-
-    evTable.style.flex = "1 1 48%";
-    adjustedTable.style.flex = "1 1 48%";
-    evTable.style.minWidth = "320px";
-    adjustedTable.style.minWidth = "320px";
+    tablesContainer.classList.add("revamp-tables-container");
 
     tablesContainer.appendChild(evTable);
     tablesContainer.appendChild(adjustedTable);
@@ -1857,25 +1526,20 @@ function displayComparisonChart(
 
     // Create footer note
     const notesContainer = document.createElement("div");
-    notesContainer.style.marginTop = themeSpacing.medium;
-    notesContainer.style.padding = "12px";
-    notesContainer.style.fontSize = themeTypography.smallSize;
-    notesContainer.style.color = themeColors.mutedTextColor;
-    notesContainer.style.textAlign = "center";
+    notesContainer.classList.add("revamp-section", "revamp-notes-container");
 
-    // Apply section styles
-    const noteSectionStyle = getSectionStyle();
-    Object.keys(noteSectionStyle).forEach((key) => {
-      notesContainer.style[key] = noteSectionStyle[key];
-    });
+    // Create and style the brand text in the footer
+    const footerBrandText = document.createElement("div");
+    footerBrandText.textContent = "Powered by REVAMP.GG";
+    footerBrandText.classList.add("revamp-footer-brand");
 
     notesContainer.innerHTML = `
-      <div style="margin-bottom: 5px;">Note: Rake calculation assumes 5% rake with a cap of 3 big blinds per pot.</div>
-      <div>Each hand is matched to its session based on timestamp, using the correct big blind size for that session.</div>
-      <div>All-in EV is adjusted based on the proportion of the pot that would be yours had there been no rake.</div>
-      <div style="margin-top: 10px; font-weight: bold; color: ${themeColors.primary}; text-transform: uppercase; letter-spacing: 1px;" class="revamp-brand-text">Powered by REVAMP.GG</div>
+      <div class="revamp-note-line">Note: Rake calculation assumes 5% rake with a cap of 3 big blinds per pot.</div>
+      <div class="revamp-note-line">Each hand is matched to its session based on timestamp, using the correct big blind size for that session.</div>
+      <div class="revamp-note-line">All-in EV is adjusted based on the proportion of the pot that would be yours had there been no rake.</div>
     `;
 
+    notesContainer.appendChild(footerBrandText);
     wrapper.appendChild(notesContainer);
 
     console.log("Rake-adjusted chart created successfully!");
@@ -1894,140 +1558,54 @@ function displayComparisonChart(
  * Initialize the application with explicit control flow for all user interactions
  */
 function initApp() {
-  console.log("Initializing application with explicit control flow...");
+  console.log("initApp() called");
 
-  // --- SETUP URL CHANGE DETECTION ---
-  // Create an observer to detect Angular route changes
-  new MutationObserver(() => {
-    // If URL has changed
-    if (location.href !== lastUrl) {
-      console.log("URL changed from", lastUrl, "to", location.href);
-      lastUrl = location.href;
+  // Add centralized click event listener with inline handler for event delegation
+  document.addEventListener("click", (event) => {
+    // Enhance buttons on click
+    enhanceButtons();
+    // Find the actual target or its closest matching parent
+    const target = event.target;
 
-      // Reset any existing observers
-      if (buttonObserver) {
-        buttonObserver.disconnect();
-      }
-
-      // Re-establish all button handlers after a brief delay to let DOM load
-      setTimeout(setupButtonHandlers, MS_BETWEEN_ATTEMPTS);
+    // Check for EV Graph button
+    const evButton = target.closest(evButtonSelector);
+    if (evButton) {
+      handleEvButtonClick();
+      return;
     }
-  }).observe(document, { subtree: true, childList: true });
 
-  // --- SETUP BUTTON HANDLERS ---
-  // Set up initial button handlers and observers
-  setupButtonHandlers();
-
-  console.log("Application initialized successfully!");
-}
-
-/**
- * Set up observers to find and attach handlers to all buttons we care about
- */
-function setupButtonHandlers() {
-  console.log("Setting up button handlers...");
-
-  // If there's an existing observer, disconnect it
-  if (buttonObserver) {
-    buttonObserver.disconnect();
-  }
-
-  // Create a new mutation observer to detect DOM changes
-  buttonObserver = new MutationObserver(() => {
-    // When DOM changes, check for all our target buttons
-    findAndAttachButtonHandlers();
-  });
-
-  // Start observing the DOM for changes
-  buttonObserver.observe(document.body, {
-    childList: true,
-    subtree: true,
-    attributes: false,
-    characterData: false,
-  });
-
-  // Also run immediately to detect buttons that already exist
-  findAndAttachButtonHandlers();
-}
-
-/**
- * Core function that finds all buttons and attaches appropriate handlers
- * This is the central control point for all button interactions
- */
-function findAndAttachButtonHandlers() {
-  console.log("Finding and attaching button handlers");
-  // 1. EV Graph Button - Primary interaction point for creating rake graphs
-  const evButton = document.querySelector(evButtonSelector);
-  if (evButton && !evButton.hasAttribute("poker-craft-ext-initialized")) {
-    console.log("✓ Found EV Graph button - attaching handler");
-    // Mark as initialized
-    evButton.setAttribute("poker-craft-ext-initialized", "true");
-    // Add event listener
-    evButton.addEventListener("click", handleEvButtonClick);
-    // Apply styling
-    enhanceButton(evButton, "EV Graph");
-  }
-
-  // 2. Rush & Cash Navigation Button - Apply styling only
-  const rushAndCashButton = document.querySelector(rushAndCashSelector);
-  if (rushAndCashButton && !rushAndCashButton.hasAttribute("revamp-enhanced")) {
-    console.log("✓ Found Rush & Cash button - applying styling");
-    enhanceButton(rushAndCashButton, "Rush & Cash");
-  }
-
-  // 3. Hold'em Navigation Button - Apply styling only
-  const holdemButton = document.querySelector(holdemSelector);
-  if (holdemButton && !holdemButton.hasAttribute("revamp-enhanced")) {
-    console.log("✓ Found Hold'em button - applying styling");
-    enhanceButton(holdemButton, "Hold'em");
-  }
-
-  // 4. PLO Navigation Button - Apply styling only
-  const omahaButton = document.querySelector(omahaSelector);
-  if (omahaButton && !omahaButton.hasAttribute("revamp-enhanced")) {
-    console.log("✓ Found PLO button - applying styling");
-    enhanceButton(omahaButton, "PLO");
-  }
-
-  // 5. Next Hands Button - Triggers cleanup and recreates charts
-  const allLinks = document.querySelectorAll("a");
-  for (const link of allLinks) {
-    const span = link.querySelector("span");
-    if (
-      span &&
-      span.textContent.includes("Next") &&
-      !span.hasAttribute("poker-craft-ext-initialized")
-    ) {
-      console.log("✓ Found Next hands button:", span.textContent);
-      span.setAttribute("poker-craft-ext-initialized", "true");
-      link.addEventListener("click", handleNextHandsButtonClick);
+    const gameHistoryButton = target.closest(gameHistorySelector);
+    if (gameHistoryButton) {
+      handleGameHistoryButtonClick();
+      return;
     }
-  }
 
-  // 6. Cleanup Trigger Buttons - Various buttons that should trigger cleanup
-  cleanupTriggerSelectors.forEach((selector) => {
-    const elements = document.querySelectorAll(selector);
-    elements.forEach((element) => {
-      // Skip non-Next elements for span selector
-      if (
-        selector === "a.ng-star-inserted span" &&
-        !element.textContent.includes("Next")
-      ) {
+    const holeCardsButton = target.closest(holeCardsSelector);
+    if (holeCardsButton) {
+      handleHoleCardsButtonClick();
+      return;
+    }
+
+    const positionButton = target.closest(positionSelector);
+    if (positionButton) {
+      handlePositionButtonClick();
+      return;
+    }
+
+    // Check for "Next X hands" link
+    // These are special because they have a span with text inside
+    const linkParent = target.closest("a.ng-star-inserted");
+    if (linkParent) {
+      const span = linkParent.querySelector("span");
+      if (span && span.textContent && span.textContent.includes("Next")) {
+        handleNextHandsButtonClick();
         return;
       }
-
-      // Check if already initialized
-      if (!element.hasAttribute("cleanup-listener-attached")) {
-        console.log(
-          `✓ Found cleanup trigger: ${
-            element.textContent || element.innerText || "element"
-          }`
-        );
-        element.setAttribute("cleanup-listener-attached", "true");
-        element.addEventListener("click", handleCleanupTriggerClick);
-      }
-    });
+    }
   });
+
+  // Initial button enhancement
+  enhanceButtons();
 }
 
 // Initialize the application
