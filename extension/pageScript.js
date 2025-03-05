@@ -1,5 +1,6 @@
 // contentScript.js
 console.log("PokerCraft extension loaded on " + window.location.href);
+const debugIsTrue = false;
 function createRakeAdjustedGraph() {
   // Constants for rake calculation - only those that don't depend on big blind size
   const RAKE_PERCENTAGE = 0.05; // 5%
@@ -40,7 +41,7 @@ function createRakeAdjustedGraph() {
   console.table(stakeDistribution);
 
   // Log information about unmatched hands
-  if (unmatchedHandsCount > 0) {
+  if (unmatchedHandsCount > 0 && debugIsTrue) {
     console.warn(
       `Warning: ${unmatchedHandsCount} hands (${(
         (unmatchedHandsCount / originalData.length) *
@@ -55,7 +56,7 @@ function createRakeAdjustedGraph() {
     const discrepancy = Math.abs(stat.matchedHands - stat.expectedHands);
     const discrepancyPercent = (discrepancy / stat.expectedHands) * 100;
 
-    if (discrepancyPercent > 5 && discrepancy > 3) {
+    if (discrepancyPercent > 5 && discrepancy > 3 && debugIsTrue) {
       console.warn(
         `Warning: Session starting at ${stat.startTime} has ${
           stat.matchedHands
@@ -281,16 +282,20 @@ function matchHandsToSessions(handData, sessions) {
 
       if (closestSession) {
         matchedSession = closestSession.session;
-        console.warn(
-          `Hand ${hand.label} outside any session timeframe, assigned to closest (${matchedSession.startTime})`
-        );
+        if (debugIsTrue) {
+          console.warn(
+            `Hand ${hand.label} outside any session timeframe, assigned to closest (${matchedSession.startTime})`
+          );
+        }
       } else {
         matchedSession = highestStakesSession;
         isUnmatched = true;
         unmatchedHandsCount++;
-        console.warn(
-          `Hand ${hand.label} could not be matched to any session, using highest stakes session`
-        );
+        if (debugIsTrue) {
+          console.warn(
+            `Hand ${hand.label} could not be matched to any session, using highest stakes session`
+          );
+        }
       }
     } else if (possibleSessions.length === 1) {
       matchedSession = possibleSessions[0];
@@ -1122,6 +1127,9 @@ function displayComparisonChart(
 // Observe the EV Graph button and launch our code when ready
 function observeEvGraphButtonAndData() {
   const evButtonSelector = 'button[kind="EvGraph"]';
+  const rushAndCashSelector = 'a.nav-item[nav="rnc"]';
+  const holdemSelector = 'a.nav-item[nav="holdem"]';
+  const omahaSelector = 'a.nav-item[nav="omaha"]';
   let isProcessing = false; // Flag to prevent multiple simultaneous executions
   let buttonObserver = null;
 
@@ -1251,9 +1259,8 @@ function observeEvGraphButtonAndData() {
         console.log("Next hands button found:", span.textContent);
         span.setAttribute("poker-craft-ext-initialized", "true");
         link.addEventListener("click", handleNextHandsButtonClick);
-
-        // Enhance the button with revamp.gg styling
-        // enhanceButton(link, "Next Hands");
+        
+        // No styling for Next Hands button
       }
     }
   }
@@ -1274,6 +1281,36 @@ function observeEvGraphButtonAndData() {
 
         // Enhance the button with revamp.gg styling
         enhanceButton(evButton, "EV Graph");
+      }
+
+      // Check for Rush & Cash button
+      const rushAndCashButton = document.querySelector(rushAndCashSelector);
+      if (
+        rushAndCashButton &&
+        !rushAndCashButton.hasAttribute("revamp-enhanced")
+      ) {
+        console.log("Rush & Cash button found. Applying styling.");
+        enhanceButton(rushAndCashButton, "Rush & Cash");
+      }
+      
+      // Check for Hold'em button
+      const holdemButton = document.querySelector(holdemSelector);
+      if (
+        holdemButton &&
+        !holdemButton.hasAttribute("revamp-enhanced")
+      ) {
+        console.log("Hold'em button found. Applying styling.");
+        enhanceButton(holdemButton, "Hold'em");
+      }
+      
+      // Check for PLO button
+      const omahaButton = document.querySelector(omahaSelector);
+      if (
+        omahaButton &&
+        !omahaButton.hasAttribute("revamp-enhanced")
+      ) {
+        console.log("PLO button found. Applying styling.");
+        enhanceButton(omahaButton, "PLO");
       }
 
       // Check for other primary navigation buttons that should trigger cleanup
@@ -1313,6 +1350,36 @@ function observeEvGraphButtonAndData() {
 
       // Enhance the button with revamp.gg styling
       enhanceButton(evButton, "EV Graph");
+    }
+
+    // Check for Rush & Cash button immediately
+    const rushAndCashButton = document.querySelector(rushAndCashSelector);
+    if (
+      rushAndCashButton &&
+      !rushAndCashButton.hasAttribute("revamp-enhanced")
+    ) {
+      console.log("Rush & Cash button found immediately. Applying styling.");
+      enhanceButton(rushAndCashButton, "Rush & Cash");
+    }
+    
+    // Check for Hold'em button immediately
+    const holdemButton = document.querySelector(holdemSelector);
+    if (
+      holdemButton &&
+      !holdemButton.hasAttribute("revamp-enhanced")
+    ) {
+      console.log("Hold'em button found immediately. Applying styling.");
+      enhanceButton(holdemButton, "Hold'em");
+    }
+    
+    // Check for PLO button immediately
+    const omahaButton = document.querySelector(omahaSelector);
+    if (
+      omahaButton &&
+      !omahaButton.hasAttribute("revamp-enhanced")
+    ) {
+      console.log("PLO button found immediately. Applying styling.");
+      enhanceButton(omahaButton, "PLO");
     }
 
     checkForNextHandsButton();
@@ -1380,15 +1447,25 @@ function enhanceButton(button, buttonType) {
   // Use our shared style variables
   const styles = window.RevampStyles;
   const isSmallButton = buttonType !== "EV Graph";
+  const isNavButton = buttonType === "Rush & Cash" || buttonType === "Hold'em" || buttonType === "PLO";
 
-  // Apply border and glow to the button
+  // Apply styling to the button
   button.style.overflow = "visible";
-  button.style.boxShadow = styles.effects.glow;
-  button.style.borderWidth = styles.borders.width;
-  button.style.borderStyle = styles.borders.style;
-  button.style.borderColor = styles.colors.primary;
-  button.style.boxSizing = "border-box";
-  button.style.borderRadius = `${styles.borders.radius}px`;
+  
+  if (isNavButton) {
+    // For nav buttons, don't show any borders
+    button.style.borderWidth = "0";
+    button.style.boxSizing = "border-box";
+    button.style.borderRadius = "0";
+  } else {
+    // For other buttons (like EV Graph), show full border with glow
+    button.style.boxShadow = styles.effects.glow;
+    button.style.borderWidth = styles.borders.width;
+    button.style.borderStyle = styles.borders.style;
+    button.style.borderColor = styles.colors.primary;
+    button.style.boxSizing = "border-box";
+    button.style.borderRadius = `${styles.borders.radius}px`;
+  }
 
   // Create the badge container
   const badgeContainer = document.createElement("div");
@@ -1399,6 +1476,8 @@ function enhanceButton(button, buttonType) {
   Object.keys(badgeStyle).forEach((key) => {
     badgeContainer.style[key] = badgeStyle[key];
   });
+  
+  // Keep badge in top right for all buttons
 
   // Add the text
   const revampText = document.createElement("span");
@@ -1412,9 +1491,13 @@ function enhanceButton(button, buttonType) {
 
   // Enhanced hover effect - only on the button but affects text color
   button.addEventListener("mouseover", function () {
-    // Apply hover effect to button
-    button.style.boxShadow = styles.effects.hoverGlow;
-    button.style.borderColor = styles.colors.primaryLight;
+    if (isNavButton) {
+      // No border hover effect for nav buttons
+    } else {
+      // Apply hover effect to regular buttons
+      button.style.boxShadow = styles.effects.hoverGlow;
+      button.style.borderColor = styles.colors.primaryLight;
+    }
 
     // Update text color
     revampText.style.color = styles.colors.primaryLight;
@@ -1422,9 +1505,13 @@ function enhanceButton(button, buttonType) {
   });
 
   button.addEventListener("mouseout", function () {
-    // Reset button to default
-    button.style.boxShadow = styles.effects.glow;
-    button.style.borderColor = styles.colors.primary;
+    if (isNavButton) {
+      // No border reset for nav buttons
+    } else {
+      // Reset regular buttons to default
+      button.style.boxShadow = styles.effects.glow;
+      button.style.borderColor = styles.colors.primary;
+    }
 
     // Reset text color
     revampText.style.color = styles.colors.primary;
@@ -1436,7 +1523,7 @@ function enhanceButton(button, buttonType) {
 
     setTimeout(() => {
       // Restore animations
-      button.style.animation = "borderGlow 3s infinite ease-in-out";
+      button.style.animation = isNavButton ? "none" : "borderGlow 3s infinite ease-in-out";
       revampText.style.animation = "textPulse 3s infinite ease-in-out";
     }, 10);
   });
